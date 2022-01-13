@@ -1,0 +1,259 @@
+<?php
+
+require './vendor/autoload.php';
+require './include/web-functions.php';
+
+$configs = include('./include/config.php');
+
+$annuaireParams = $configs['cas'];
+
+$cas_host = $annuaireParams["host"];
+$cas_port = $annuaireParams["port"];
+$cas_context = $annuaireParams["context"];
+$cas_server_ca_cert_path = $annuaireParams["certificat"];
+
+$cas_reals_hosts = [$cas_host];
+$protocole = SAML_VERSION_1_1;
+//si uniquement tranmission attribut
+phpCAS::setDebug();
+phpCAS::setVerbose(true);
+
+phpCAS::client(CAS_VERSION_2_0, $cas_host, $cas_port, $cas_context);
+//phpCAS::client(SAML_VERSION_1_1, $cas_host, $cas_port, $cas_context);
+
+phpCAS::setCasServerCACert($cas_server_ca_cert_path);
+phpCAS::handleLogoutRequests(true, $cas_reals_hosts);
+phpCAS::forceAuthentication();
+
+if (isset($_REQUEST['logout'])) {
+    phpCAS::logout();
+}
+
+$db = $configs['db'];
+$conn = new mysqli($db['host'], $db['user'], $db['password'], $db['dbName'], $db['port']);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+//$_SESSION['phpCAS']['attributes']['siren'] = "19450042700035"; //durzy
+$siren = $_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'];
+//enseignant: National_ENS
+//directeur: National_DIR
+$role = $_SESSION['phpCAS']['attributes']['ENTPersonProfils'];
+$etablissement = !empty($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']) ? get_etablissement_id_by_siren($siren) : null;
+$show_simple_data = !empty($etablissement) && $role == "National_DIR";
+if (!empty($etablissement)) {
+    $_REQUEST["etab"] = $etablissement;
+}
+
+$dateDebut = getDateDebutMin();
+$dateFin = getDateFinMax();
+$mois = "-1";
+$etab = "-1";
+$etabType = [];
+$resultType = "services";
+
+$listMois = getListMois();
+
+if (isset($_REQUEST)) {
+    foreach ($_REQUEST as $key => $item) {
+        $_REQUEST[$key] = mysqli_real_escape_string($conn, $item);
+    }
+}
+
+//$resultType = "etabs";
+if (isset($_REQUEST["etab"]))
+    $etab = $_REQUEST["etab"];
+
+
+if (isset($_REQUEST["etabType"]))
+    $etabType = $_REQUEST["etabType"];
+
+if (isset($_REQUEST["mois"]))
+    $mois = $_REQUEST["mois"];
+
+if (isset($_REQUEST["resultType"]))
+    $resultType = $_REQUEST["resultType"];
+
+if (isset($_REQUEST["resultId"])) {
+    echo getStatsHTML($_REQUEST["resultId"]);
+    die;
+}
+
+if (isset($_REQUEST["top"])) {
+    echo getTopHTML($_REQUEST["serviceId"]);
+    die;
+}
+
+?>
+
+    <!doctype html>
+    <html lang="fr">
+    <head>
+        <meta charset="utf-8">
+        <title>Statistiques</title>
+
+        <script src="./assets/js/jquery.min.js"></script>
+        <script src="./assets/js/boostrap.min.js"></script>
+        <script src="./assets/js/datatables.min.js"></script>
+        <script src="./assets/js/select2.js"></script>
+        <script src="./assets/js/datatables.buttons.min.js"></script>
+        <script src="./assets/js/buttons_flash.js"></script>
+        <script src="./assets/js/jszip.min.js"></script>
+        <script src="./assets/js/buttons.html5.js"></script>
+        <script src="./assets/js/button.print.js"></script>
+
+
+        <link rel="stylesheet" href="./assets/css/bootstrap.css">
+        <link rel="stylesheet" href="./assets/css/datatables.css">
+        <link rel="stylesheet" href="./assets/css/datatables.responsive.css">
+        <link rel="stylesheet" href="./assets/css/select2.css">
+        <link rel="stylesheet" href="./assets/css/styles.css"/>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var checkbox = document.querySelector('input[name="switch1"]');
+
+                checkbox.addEventListener('change', function () {
+                    if (checkbox.checked) {
+                        var element = document.getElementById("result").classList.remove("population");
+                        var element = document.getElementById("result").classList.add("ratio");
+                    } else {
+                        var element = document.getElementById("result").classList.remove("ratio");
+                        var element = document.getElementById("result").classList.add("population");
+                    }
+                });
+            });
+        </script>
+    </head>
+
+    <body>
+    <header>
+        <div class="navbar navbar-dark bg-dark shadow-sm">
+            <div class="container-fluid d-block">
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarHeader"
+                        aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <a class="navbar-brand" href="#"><img src="./images/logoNOC.svg" alt="Net O'Centre"></a>
+            </div>
+        </div>
+    </header>
+    <section id="chapeau">
+        <div class="container-fluid">
+            <div id="filters">
+                <h1>Statistiques de fréquentation</h1>
+                <h2>ENT Net O'Centre</h2>
+                <?php if (!$show_simple_data): ?>
+                    <form id="filters" action="" method="post" class="form-inline">
+                        <div class="form-group mr-2 mb-3">
+                            <label>Voir les résultats pour :</label>
+                        </div>
+                        <div class="form-group mr-2 mb-3">
+                            <label for="etab" class="sr-only">établissement</label>
+                            <select id="etab" name="etab" class="form-control">
+                                <?php
+
+                                $etabs = getEtablissements();
+                                echo '<option value="-1">Tous les établissements</option>';
+                                foreach ($etabs as $id => $name) {
+                                    echo "<option value=" . $id . " " . (($etab == $id) ? " selected " : "") . ">" . $name . "</option>";
+                                }
+
+                                ?>
+                            </select>
+                        </div>
+                        <div class="form-group mr-2 mb-3">
+                            <label for="etabType" class="sr-only">catégorie</label>
+                            <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple"
+                                    multiple="multiple">
+                                <?php
+
+                                $types = getTypesEtablissements();
+                                //echo '<option value="-1">Tous les types</option>';
+                                foreach ($types as $name) {
+                                    echo "<option value=\"" . $name . "\"" . ((in_array($name, $etabType)) ? " selected " : "") . ">" . $name . "</option>";
+                                }
+
+                                ?>
+                            </select>
+                        </div>
+                        <div class="form-group mr-2 mb-3">
+                            <label for="mois" class="sr-only">Période</label>
+                            <select id="mois" name="mois" class="form-control">
+                                <option value="-1">Tous les mois</option>
+                                <?php
+                                foreach ($listMois as $m) {
+                                    echo '<option ' . (($m == $mois) ? " selected " : "") . ' value="' . $m . '">' . $m . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <button id="filterBtn" class="btn btn-primary mb-3">Filtrer</button>
+                        <button id="reset" class="btn btn-default mb-3">Ré-initialiser les filtres</button>
+                        <input id="resultType" type="hidden" name="resultType" value="<?= $resultType ?>"/>
+                    </form>
+                <?php endif; ?>
+            </div>
+            <div>
+    </section>
+    <section id="statistiques">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-6">
+                    <?php if (!$show_simple_data): ?>
+                        <div class="custom-control custom-radio custom-control-inline">
+                            <input type="radio" id="vueservices" name="vue" class="custom-control-input"
+                                   value="services" <?= (($resultType == 'services') ? 'checked' : '') ?> >
+                            <label class="custom-control-label" for="vueservices">Vue Services</label>
+                        </div>
+                        <div class="custom-control custom-radio custom-control-inline">
+                            <input type="radio" id="vuelycees" name="vue" class="custom-control-input"
+                                   value="etabs" <?= (($resultType == 'etabs') ? 'checked' : '') ?> >
+                            <label class="custom-control-label" for="vuelycees">Vue Etablissements</label>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="col-6">
+                    <div class="custom-control custom-switch text-right mb-3">
+                        <input type="checkbox" class="custom-control-input" id="customSwitch1" name="switch1">
+                        <label class="custom-control-label" for="customSwitch1">Voir le ratio des visites par rapport aux
+                            utilisateurs potentiels</label>
+                    </div>
+                </div>
+            </div>
+            <?php
+            echo displayTable($dateDebut, $dateFin);
+            ?>
+        </div>
+    </section>
+    <!-- Modal -->
+    <div class="modal fade " id="topModal" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
+        <div class="modal-dialog-centered modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="">Classement par établissement</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div id="topContent" class="modal-body">
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    </body>
+    <script type="text/javascript">
+    </script>
+
+    </html>
+
+
+<?php
+
+$conn->close();
