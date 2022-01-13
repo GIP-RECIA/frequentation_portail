@@ -200,7 +200,8 @@ table#result.ratio tbody tr td:nth-child(10) {
     font-weight: bold;
     font-size: 0.7em;
     padding: 2px 5px;
-    margin-right: 10px
+    margin-right: 10px;
+    cursor: pointer;
 }
 
 .modal-header {
