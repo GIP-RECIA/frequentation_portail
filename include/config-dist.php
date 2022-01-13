@@ -5,8 +5,8 @@ return [
         'host' => "localhost",
         'port' => 3306,
         'dbName' => "frequentation_portail",
-        'user' => "root",
-        'password' => "root",
+        'user' => "",
+        'password' => "",
     ],
     'cas' => [
         'host' => "secure.giprecia.net",

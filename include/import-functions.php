@@ -1,16 +1,37 @@
 <?php
 
+$arrIdServiceFromName = [];
+
+/**
+ * Import des établissement en bdd
+ *
+ * @param string $folder Le dossier des imports
+ */
 function importEtablissement($folder) {
     global $conn;
     $xml = simplexml_load_file($folder . '/liste_etablissements.xml');
     $etabs = $xml->xpath('/Etablissements/Etablissement');
 
     foreach ($etabs as $etab) {
-        $sql = "INSERT INTO etablissements (nom, departement, siren, type, total_personnes) VALUES ('" . $etab['name'] . "', '" . $etab['departement'] . "', '" . $etab['siren'] . "', '" . $etab['type'] . "', '" . $etab->TotalPersActive . "')";
+        $sql = "SELECT COUNT(siren) FROM etablissements WHERE siren = '{$etab['siren']}'";
+        $res = mysqli_query($conn, $sql);
+
+        // Si l'établissement existe déjà, on le met à jour, sinon on l'insert
+        if (mysqli_fetch_array($res)[0] > 0) {
+            $sql = "UPDATE etablissements SET nom = '{$etab['name']}', departement = '{$etab['departement']}', type = '{$etab['type']}', total_personnes = '{$etab->TotalPersActive}' WHERE siren = '{$etab['siren']}'";
+        } else {
+            $sql = "INSERT INTO etablissements (nom, departement, siren, type, total_personnes) VALUES ('{$etab['name']}', '{$etab['departement']}', '{$etab['siren']}', '{$etab['type']}', '{$etab->TotalPersActive}')";
+        }
+
         $conn->query($sql);
     }
 }
 
+/**
+ * Import des stats en bdd
+ *
+ * @param string $folder Le dossier des imports
+ */
 function importJours($folder) {
     global $conn;
 
@@ -33,11 +54,23 @@ function importJours($folder) {
         die("Erreur sur le mois récupéré ($month)");
     }
 
-    $sql = "DELETE FROM stats WHERE annee = '" . $year . "' and mois = '" . $month . "'";
+    $sql = "DELETE FROM stats WHERE annee = '{$year}' and mois = '{$month}'";
     $res = mysqli_query($conn, $sql);
 
-    $sql = "DELETE FROM stats_etab_mois WHERE annee = '" . $year . "' and mois = '" . $month . "'";
+    $sql = "DELETE FROM stats_etab_mois WHERE annee = '{$year}' and mois = '{$month}'";
     $res = mysqli_query($conn, $sql);
+
+    $sql = "INSERT INTO stats_etab_mois (
+        jour, mois, annee, id_lycee, au_plus_quatre_fois, au_moins_cinq_fois, nb_visiteurs, total_visites, parent,
+        eleve, enseignant, personnel_etablissement_non_enseignant, personnel_collectivite
+    ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $stmt1 = $conn->prepare($sql);
+    $sql = "INSERT INTO stats (
+        jour, mois, annee, id_lycee, id_service, au_plus_quatre_fois, au_moins_cinq_fois, nb_visiteurs,
+        total_visites, parent, eleve, enseignant, personnel_etablissement_non_enseignant,
+        personnel_collectivite
+    ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $stmt2 = $conn->prepare($sql);
 
     $sql = "SELECT nom, siren FROM etablissements";
 
@@ -45,19 +78,22 @@ function importJours($folder) {
         while ($row = mysqli_fetch_array($res)) {
             $siren = $row['siren'];
 
-            if (file_exists($folder . '/mois_' . $siren . '.xml')) {
-                vlog("Etablissement " . $row['nom']);
-                importJoursFile($siren, $folder . '/mois_' . $siren . '.xml', $month, $year);
+            if (file_exists("{$folder}/mois_{$siren}.xml")) {
+                vlog("Etablissement {$row['nom']}");
+                importJoursFile($siren, "{$folder}/mois_{$siren}.xml", $month, $year, $stmt1, $stmt2);
             }
         }
         mysqli_free_result($res);
     }
+
+    $stmt1->close();
+    $stmt2->close();
 }
 
-function importJoursFile($siren, $f, $month, $year) {
+function importJoursFile($siren, $f, $month, $year, $stmt1, $stmt2) {
     global $conn;
     $xml = simplexml_load_file($f);
-    $result = mysqli_query($conn, "SELECT id FROM etablissements WHERE siren = " . $siren);
+    $result = mysqli_query($conn, "SELECT id FROM etablissements WHERE siren = {$siren}");
     $row = mysqli_fetch_assoc($result);
     $idEtab = $row['id'];
 
@@ -70,50 +106,30 @@ function importJoursFile($siren, $f, $month, $year) {
     $profils = $xml->xpath('/Etablissement/ProfilsGlobaux/ProfilGlobal');
 
     foreach ($profils as $profil) {
-        if ($profil['name'] == 'Parent')
-            $total_parent = $profil->DifferentsUsers;
-        if ($profil['name'] == 'Elève')
-            $total_eleve = $profil->DifferentsUsers;
-        if ($profil['name'] == 'Enseignant')
-            $total_enseignant = $profil->DifferentsUsers;
-        if ($profil['name'] == 'Personnel d\'établissement non enseignant')
-            $total_personnelNonEnseignant = $profil->DifferentsUsers;
-        if ($profil['name'] == 'Personnel de collectivité')
-            $total_personnelCollectivite = $profil->DifferentsUsers;
+        switch ($profil['name']) {
+            case 'Parent':
+                $parent = $profil->DifferentsUsers;
+                break;
+            case 'Elève':
+                $eleve = $profil->DifferentsUsers;
+                break;
+            case 'Enseignant':
+                $enseignant = $profil->DifferentsUsers;
+                break;
+            case "Personnel d'établissement non enseignant":
+                $personnelNonEnseignant = $profil->DifferentsUsers;
+                break;
+            case 'Personnel de collectivité':
+                $personnelCollectivite = $profil->DifferentsUsers;
+        }
     }
 
     $etablissement = $xml->xpath('/Etablissement');
 
-    $sql = "INSERT INTO stats_etab_mois (
-        jour,
-        mois,
-        annee,
-        id_lycee,
-        au_plus_quatre_fois,
-        au_moins_cinq_fois,
-        nb_visiteurs,
-        total_visites,
-        parent,
-        eleve,
-        enseignant,
-        personnel_etablissement_non_enseignant,
-        personnel_collectivite
-    ) VALUES (
-        " . "NULL" . ",
-        '" . $month . "',
-        '" . $year . "',
-        '" . $idEtab . "',
-        '" . $etablissement[0]->AuPlus4Fois . "',
-        '" . $etablissement[0]->AuMoins5Fois . "',
-        '" . $etablissement[0]->DifferentsUsers . "',
-        '" . $etablissement[0]->TotalSessions . "',
-        '" . $total_parent . "',
-        '" . $total_eleve . "',
-        '" . $total_enseignant . "',
-        '" . $total_personnelNonEnseignant . "',
-        '" . $total_personnelCollectivite . "'
-    )";
-    $conn->query($sql);
+    $stmt1->bind_param("iiiiiiiiiiii", $month, $year, $idEtab, $etablissement[0]->AuPlus4Fois,
+        $etablissement[0]->AuMoins5Fois, $etablissement[0]->DifferentsUsers, $etablissement[0]->TotalSessions,
+        $total_parent, $total_eleve, $total_enseignant, $total_personnelNonEnseignant, $total_personnelCollectivite);
+    $stmt1->execute();
 
     $services = $xml->xpath('/Etablissement/Services/Service');
 
@@ -128,78 +144,56 @@ function importJoursFile($siren, $f, $month, $year) {
         $profils = $service->xpath('Profils/Profil');
 
         foreach ($profils as $profil) {
-            if ($profil['name'] == 'Parent') {
-                $parent = $profil->DifferentsUsers;
-            }
-
-            if ($profil['name'] == 'Elève') {
-                $eleve = $profil->DifferentsUsers;
-            }
-
-            if ($profil['name'] == 'Enseignant') {
-                $enseignant = $profil->DifferentsUsers;
-            }
-
-            if ($profil['name'] == 'Personnel d\'établissement non enseignant') {
-                $personnelNonEnseignant = $profil->DifferentsUsers;
-            }
-
-            if ($profil['name'] == 'Personnel de collectivité') {
-                $personnelCollectivite = $profil->DifferentsUsers;
+            switch ($profil['name']) {
+                case 'Parent':
+                    $parent = $profil->DifferentsUsers;
+                    break;
+                case 'Elève':
+                    $eleve = $profil->DifferentsUsers;
+                    break;
+                case 'Enseignant':
+                    $enseignant = $profil->DifferentsUsers;
+                    break;
+                case "Personnel d'établissement non enseignant":
+                    $personnelNonEnseignant = $profil->DifferentsUsers;
+                    break;
+                case 'Personnel de collectivité':
+                    $personnelCollectivite = $profil->DifferentsUsers;
             }
         }
 
-        $sql = "INSERT INTO stats (
-                jour,
-                mois,
-                annee,
-                id_lycee,
-                id_service,
-                au_plus_quatre_fois,
-                au_moins_cinq_fois,
-                nb_visiteurs,
-                total_visites,
-                parent,
-                eleve,
-                enseignant,
-                personnel_etablissement_non_enseignant,
-                personnel_collectivite
-            ) VALUES (
-                " . "NULL" . ",
-                '" . $month . "',
-                '" . $year . "',
-                '" . $idEtab . "',
-                '" . $idService . "',
-                '" . $service->AuPlus4Fois . "',
-                '" . $service->AuMoins5Fois . "',
-                '" . $service->DifferentsUsers . "',
-                '" . $service->TotalSessions . "',
-                '" . $parent . "',
-                '" . $eleve . "',
-                '" . $enseignant . "',
-                '" . $personnelNonEnseignant . "',
-                '" . $personnelCollectivite . "'
-            )";
-        $conn->query($sql);
+        $stmt2->bind_param("iiiiiiiiiiiii", $month, $year, $idEtab, $idService, $service->AuPlus4Fois,
+            $service->AuMoins5Fois, $service->DifferentsUsers, $service->TotalSessions, $parent, $eleve, $enseignant,
+            $personnelNonEnseignant, $personnelCollectivite);
+        $stmt2->execute();
     }
+
+    
 
     mysqli_free_result($result);
 }
 
 function getIdServiceFromName($serviceName) {
-    global $conn;
-    $result = mysqli_query($conn, "SELECT id FROM services WHERE nom = '" . addslashes($serviceName) . "'");
+    global $conn, $arrIdServiceFromName;
+    $serviceName = addslashes($serviceName);
+
+    if (array_key_exists($serviceName, $arrIdServiceFromName)) {
+        return $arrIdServiceFromName[$serviceName];
+    }
+
+    $result = mysqli_query($conn, "SELECT id FROM services WHERE nom = '{$serviceName}'");
     $row = mysqli_fetch_assoc($result);
 
     if ($row) {
         $idService = $row['id'];
     } else {
-        $sql = "INSERT INTO services (nom) VALUES ('" . addslashes($serviceName) . "')";
+        $sql = "INSERT INTO services (nom) VALUES ('{$serviceName}')";
         $conn->query($sql);
         $idService = $conn->insert_id;
     }
 
     mysqli_free_result($result);
+    $arrIdServiceFromName[$serviceName] = $idService;
     return $idService;
 }
 
