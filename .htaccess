@@ -1,0 +1,2 @@
+RedirectMatch 403 /(README.md|composer\.(json|lock)|import.php)$
+RedirectMatch 403 /(\.git|vendor|data|include)/.*$
