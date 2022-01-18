@@ -47,8 +47,7 @@ if(!is_dir($path . $folder)) {
 }
 
 vlog("Démarrage de l'import");
-importEtablissement($path . $folder);
-importJours($path . $folder);
+importDataEtabs($path . $folder);
 vlog("Fin de l'import");
 
 $conn->close();
