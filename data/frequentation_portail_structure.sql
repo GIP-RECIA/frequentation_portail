@@ -35,8 +35,9 @@ CREATE TABLE IF NOT EXISTS `etablissements` (
   `departement` int(11) NOT NULL,
   `siren` bigint(50) NOT NULL,
   `type` varchar(2048) NOT NULL,
-  `total_personnes` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `type` (`type`),
+  CONSTRAINT UQ_siren UNIQUE (siren)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -54,74 +55,92 @@ CREATE TABLE IF NOT EXISTS `services` (
 -- --------------------------------------------------------
 
 --
--- Structure de la table `stats`
+-- Structure de la table `stats_services`
 --
 
-CREATE TABLE IF NOT EXISTS `stats` (
+CREATE TABLE IF NOT EXISTS `stats_services` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `jour` date DEFAULT '0000-00-00',
+  -- Un jour null veut dire que l'on est sur les stats d'un mois
+  `jour` date DEFAULT NULL,
   `mois` int(11) NOT NULL,
   `annee` int(11) NOT NULL,
-  `id_lycee` int(11) NOT NULL DEFAULT 0,
-  `id_service` int(11) NOT NULL DEFAULT 0,
-  `au_plus_quatre_fois` int(11) NOT NULL DEFAULT 0,
-  `au_moins_cinq_fois` int(11) NOT NULL DEFAULT 0,
-  `nb_visiteurs` int(11) NOT NULL DEFAULT 0,
-  `total_visites` int(11) NOT NULL DEFAULT 0,
-  `parent` int(11) NOT NULL DEFAULT 0,
-  `eleve` int(11) NOT NULL DEFAULT 0,
-  `enseignant` int(11) NOT NULL DEFAULT 0,
-  `personnel_etablissement_non_enseignant` int(11) NOT NULL DEFAULT 0,
-  `personnel_collectivite` int(11) NOT NULL DEFAULT 0,
+  `id_lycee` int(11) NOT NULL,
+  -- Un service null veut dire que l'on est sur les stats de l'établissement et non d'un service
+  `id_service` int(11) DEFAULT NULL,
+  -- Section Parents
+  `parent__total_pers_actives` int(11) DEFAULT NULL,
+  `parent__au_plus_quatre_fois` int(11) NOT NULL DEFAULT 0,
+  `parent__au_moins_cinq_fois` int(11) NOT NULL DEFAULT 0,
+  `parent__total_sessions` int(11) NOT NULL DEFAULT 0,
+  `parent__differents_users` int(11) NOT NULL DEFAULT 0,
+  `parent__tps_moyen_minutes` int(11) DEFAULT NULL,
+  -- Section Eleves
+  `eleve__total_pers_actives` int(11) DEFAULT NULL,
+  `eleve__au_plus_quatre_fois` int(11) NOT NULL DEFAULT 0,
+  `eleve__au_moins_cinq_fois` int(11) NOT NULL DEFAULT 0,
+  `eleve__total_sessions` int(11) NOT NULL DEFAULT 0,
+  `eleve__differents_users` int(11) NOT NULL DEFAULT 0,
+  `eleve__tps_moyen_minutes` int(11) DEFAULT NULL,
+  -- Section Enseignant
+  `enseignant__total_pers_actives` int(11) DEFAULT NULL,
+  `enseignant__au_plus_quatre_fois` int(11) NOT NULL DEFAULT 0,
+  `enseignant__au_moins_cinq_fois` int(11) NOT NULL DEFAULT 0,
+  `enseignant__total_sessions` int(11) NOT NULL DEFAULT 0,
+  `enseignant__differents_users` int(11) NOT NULL DEFAULT 0,
+  `enseignant__tps_moyen_minutes` int(11) DEFAULT NULL,
+  -- Section Personnel d'établissement non enseignant
+  `perso_etab_non_ens__total_pers_actives` int(11) DEFAULT NULL,
+  `perso_etab_non_ens__au_plus_quatre_fois` int(11) NOT NULL DEFAULT 0,
+  `perso_etab_non_ens__au_moins_cinq_fois` int(11) NOT NULL DEFAULT 0,
+  `perso_etab_non_ens__total_sessions` int(11) NOT NULL DEFAULT 0,
+  `perso_etab_non_ens__differents_users` int(11) NOT NULL DEFAULT 0,
+  `perso_etab_non_ens__tps_moyen_minutes` int(11) DEFAULT NULL,
+  -- Section Personnel de collectivité
+  `perso_collec__total_pers_actives` int(11) DEFAULT NULL,
+  `perso_collec__au_plus_quatre_fois` int(11) NOT NULL DEFAULT 0,
+  `perso_collec__au_moins_cinq_fois` int(11) NOT NULL DEFAULT 0,
+  `perso_collec__total_sessions` int(11) NOT NULL DEFAULT 0,
+  `perso_collec__differents_users` int(11) NOT NULL DEFAULT 0,
+  `perso_collec__tps_moyen_minutes` int(11) DEFAULT NULL,
+  -- Section Tuteur de stage
+  `tuteur_stage__total_pers_actives` int(11) DEFAULT NULL,
+  `tuteur_stage__au_plus_quatre_fois` int(11) NOT NULL DEFAULT 0,
+  `tuteur_stage__au_moins_cinq_fois` int(11) NOT NULL DEFAULT 0,
+  `tuteur_stage__total_sessions` int(11) NOT NULL DEFAULT 0,
+  `tuteur_stage__differents_users` int(11) NOT NULL DEFAULT 0,
+  `tuteur_stage__tps_moyen_minutes` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `id_service` (`id_service`),
-  KEY `jour` (`jour`)
+  FOREIGN KEY (`id_lycee`) REFERENCES `etablissements` (`id`),
+  FOREIGN KEY (`id_service`) REFERENCES `services` (`id`),
+  KEY `jour` (`jour`),
+  KEY `mois` (`mois`),
+  KEY `annee` (`annee`),
+  CONSTRAINT UQ_service_rec UNIQUE (jour,mois,annee,id_lycee,id_service)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
 
 --
 -- Structure de la table `stats_etab`
 --
 
-CREATE TABLE IF NOT EXISTS `stats_etab` (
-  `id_lycee` int(11) NOT NULL DEFAULT 0,
-  `total_eleve` bigint(13) DEFAULT NULL,
-  `total_enseignant` bigint(13) DEFAULT NULL,
-  `total_personnel_etablissement_non_enseignant` bigint(13) DEFAULT NULL,
-  `total_personnel_collectivite` bigint(13) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
-
---
--- Structure de la table `stats_etab_mois`
---
-
-CREATE TABLE IF NOT EXISTS `stats_etab_mois` (
+CREATE TABLE IF NOT EXISTS `stats_etabs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `jour` date DEFAULT '0000-00-00',
   `mois` int(11) NOT NULL,
   `annee` int(11) NOT NULL,
-  `id_lycee` int(11) NOT NULL DEFAULT 0,
+  `id_lycee` int(11) NOT NULL,
   `au_plus_quatre_fois` int(11) NOT NULL DEFAULT 0,
   `au_moins_cinq_fois` int(11) NOT NULL DEFAULT 0,
-  `nb_visiteurs` int(11) NOT NULL DEFAULT 0,
-  `total_visites` int(11) NOT NULL DEFAULT 0,
-  `parent` int(11) NOT NULL DEFAULT 0,
-  `eleve` int(11) NOT NULL DEFAULT 0,
-  `enseignant` int(11) NOT NULL DEFAULT 0,
-  `personnel_etablissement_non_enseignant` int(11) NOT NULL DEFAULT 0,
-  `personnel_collectivite` int(11) NOT NULL DEFAULT 0,
+  `total_sessions` int(11) NOT NULL DEFAULT 0,
+  `differents_users` int(11) NOT NULL DEFAULT 0,
+  `total_pers_active` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
-  KEY `jour` (`jour`)
+  FOREIGN KEY (`id_lycee`) REFERENCES `etablissements` (`id`),
+  KEY `mois` (`mois`),
+  KEY `annee` (`annee`),
+  CONSTRAINT UQ_etab_rec UNIQUE (mois,annee,id_lycee)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-
--- Ajout d'une contrainte d'unicité sur le siren
-ALTER TABLE etablissements
-  ADD CONSTRAINT UQ_siren UNIQUE (siren);
