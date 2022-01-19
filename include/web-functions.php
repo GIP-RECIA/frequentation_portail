@@ -25,7 +25,7 @@ function nice($data)
     echo "<pre>" . print_r($data, true) . "</pre>";
 }
 
-function displayTable($dateDebut, $dateFin)
+function displayTable($dateDebut, $dateFin, $etabId)
 {
     global $resultType;
 
@@ -67,6 +67,16 @@ function displayTable($dateDebut, $dateFin)
     $html .= '</tr>';
     $html .= '</thead>';
     $html .= '<tbody>';
+    // TODO: ici il faut insérer les lignes
+    /*if ($resultType == 'services') {
+        // TODO: en cours
+        $results = getServices();
+        $resultLabel = "Service";
+    } else {
+        // TODO: a faire
+    }*/
+    // TODO: dans un premier temps on ne va faire que les lignes des services en dur
+    $html .= getStatsEtablissementHTML($etabId);
     $html .= '</tbody>';
     $html .= '</table>';
     $html .= '</div>';
@@ -74,6 +84,7 @@ function displayTable($dateDebut, $dateFin)
 
     $resultsJson = json_encode(array_keys($results));
 
+    // TODO: virer tous ce code qui va devenir mort
     $ajax = '
         <script type="text/javascript">
 
@@ -81,7 +92,7 @@ function displayTable($dateDebut, $dateFin)
 
             $( document ).ready(function() {
 
-                results.forEach(displayResult);
+                //results.forEach(displayResult);
 
                 function displayResult(value, index, array) {
                     $.ajax({
@@ -237,6 +248,41 @@ function get_etablissement_id_by_siren($siren)
     return false;
 }
 
+function getStatsEtablissementHTML($etabId) {
+    global $dateDebut, $dateFin, $etab, $etabType, $resultType, $mois, $listMois, $show_simple_data;
+
+    //print_r(getStatsEtablissement($etabId, $etabType));
+    $stats = getStatsEtablissement($etabId, $etabType);
+    $statsServices = $stats['statsServices'];
+    $statsEtab = $stats['statsEtab'];
+    $html = '';
+
+    foreach ($statsServices as $service) {
+        $html .= "<tr>";
+
+        $html .= "<td><span class=\"top20\" data-serviceid=\"{$service['id']}\" class=\"float-right\">TOP</span>{$service['nom']}</td>";
+        $html .= "<td>{$service['au_plus_quatre_fois']}</td>";
+        $html .= "<td>{$service['au_moins_cinq_fois']}</td>";
+        $html .= "<td>{$service['differents_users']}</td>";
+        $html .= "<td>{$service['total_sessions']}</td>";
+
+        $html .= "<td></td>";
+        $html .= "<td></td>";
+        $html .= "<td></td>";
+        $html .= "<td></td>";
+        $html .= "<td></td>";
+
+        $html .= "<td></td>";
+        $html .= "<td></td>";
+        $html .= "<td></td>";
+        $html .= "<td></td>";
+
+        $html .= "</tr>";
+    }
+
+    return $html;
+}
+
 function getStatsHTML($resultId)
 {
 
@@ -287,6 +333,9 @@ function getStatsHTML($resultId)
     $html .= '<td>' . $personnelEtablissementNonEnseignant . '</td>';
     $html .= '<td>' . $personnelCollectivite . '</td>';
 
+    // Ici cela provient de la table stats_etab, sauf que cette table n'est jamais remplie (total_eleve, total_enseignant, total_personnel_etablissement_non_enseignant, total_personnel_collectivite)
+    // res : 0% (car ici on a rien en base) <br> VAL (car provient d'une autre table) / VIDE (car on a rien en base)
+    // ATTENTION, ici on fait un intvalue sur le résultat booléen de la comparaison au lien du champ numérique ????
     $html .= '<td>' . ((intval($stats['total_eleve'] == 0)) ? '0' : (round($avgEleve / intval($stats['total_eleve']) * 100, 0))) . '%<br/> (' . $avgEleve . ' / ' . $stats['total_eleve'] . ')</td>';
     $html .= '<td>' . ((intval($stats['total_enseignant'] == 0)) ? '0' : (round($avgEnseignant / intval($stats['total_enseignant']) * 100, 0))) . '%<br/> (' . $avgEnseignant . ' / ' . $stats['total_enseignant'] . ')</td>';
     $html .= '<td>' . ((intval($stats['total_personnel_etablissement_non_enseignant'] == 0)) ? '0' : (round($avgPrsonnelEtablissementNonEnseignant / intval($stats['total_personnel_etablissement_non_enseignant']) * 100, 0))) . '%</td>';
@@ -296,6 +345,54 @@ function getStatsHTML($resultId)
 
     return $html;
 
+}
+
+/**
+ * Récupère les statistiques des différents services d'une établissement
+ */
+function getStatsEtablissement($etab, $etabType) {
+    global $conn, $resultType, $mois;
+
+    $where = [];
+    $statsServices = [];
+
+    if ($etab !== '-1') {
+        $where[] = "id_lycee = {$etab}";
+    }
+
+    $where = implode(' AND ', $where);
+
+    if ($where !== '') {
+        $where = " WHERE {$where}";
+    }
+
+    $sql =
+        "SELECT
+            sv.id as id,
+            sv.nom as nom,
+            SUM(s.au_plus_quatre_fois) as au_plus_quatre_fois,
+            SUM(s.au_moins_cinq_fois) as au_moins_cinq_fois,
+            SUM(s.differents_users) as differents_users,
+            SUM(s.total_sessions) as total_sessions,
+            SUM(s.parent__differents_users) as parent__differents_users,
+            SUM(s.eleve__differents_users) as eleve__differents_users,
+            SUM(s.enseignant__differents_users) as enseignant__differents_users,
+            SUM(s.perso_etab_non_ens__differents_users) as perso_etab_non_ens__differents_users,
+            SUM(s.perso_collec__differents_users) as perso_collec__differents_users,
+            SUM(s.tuteur_stage__differents_users) as tuteur_stage__differents_users
+        FROM stats_services as s
+        INNER JOIN services as sv ON sv.id = s.id_service
+        {$where}
+        GROUP BY id_service
+        ORDER BY nom";
+
+    if ($result = $conn->query($sql)) {
+        while ($row = $result->fetch_array(MYSQLI_ASSOC)) {
+            $statsServices[] = $row;
+        }
+    }
+
+    return ['statsServices' => $statsServices, 'statsEtab' => []];
 }
 
 function getStats($dateDebut, $dateFin, $idResult, $etab, $etabType)
@@ -362,20 +459,19 @@ function getStats($dateDebut, $dateFin, $idResult, $etab, $etabType)
     if ($where == ' WHERE ')
         $where = '';
 
-    $sql = "SELECT 
-        SUM(au_plus_quatre_fois) as au_plus_quatre_fois, 
-        SUM(au_moins_cinq_fois) as au_moins_cinq_fois, 
-        SUM(nb_visiteurs) as nb_visiteurs, 
+    $sql = "SELECT
+        SUM(au_plus_quatre_fois) as au_plus_quatre_fois,
+        SUM(au_moins_cinq_fois) as au_moins_cinq_fois,
+        SUM(nb_visiteurs) as nb_visiteurs,
         SUM(total_visites) as total_visites,
-        CEIL(SUM(parent)) as parent, 
-        CEIL(SUM(eleve)) as eleve, 
-        CEIL(SUM(enseignant)) as enseignant, 
+        CEIL(SUM(parent)) as parent,
+        CEIL(SUM(eleve)) as eleve,
+        CEIL(SUM(enseignant)) as enseignant,
         CEIL(SUM(personnel_etablissement_non_enseignant)) as personnel_etablissement_non_enseignant,
         CEIL(SUM(personnel_collectivite)) as personnel_collectivite
-        FROM " . $table . "                
+        FROM " . $table . "
         " . $where . "
-        GROUP BY " . $groupby . "           
-        ";
+        GROUP BY " . $groupby;
 
     if ($res = mysqli_query($conn, $sql)) {
         if ($row = mysqli_fetch_array($res)) {
@@ -523,7 +619,7 @@ function getListMois()
 {
     global $conn;
     $list = array();
-    if ($res = mysqli_query($conn, "SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats ORDER BY m ASC")) {
+    if ($res = mysqli_query($conn, "SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY m ASC")) {
         while ($row = mysqli_fetch_array($res)) {
             $list[] = $row['m'];
         }

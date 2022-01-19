@@ -75,11 +75,6 @@ function importDataEtabs($folder) {
             'siren' => $etab['siren'],
             'name' => $etab['name']
         ];
-        $sql = "INSERT INTO stats_etabs
-            (mois, annee, id_lycee, au_plus_quatre_fois, au_moins_cinq_fois, total_sessions, differents_users, total_pers_active)
-            VALUES ('{$month}', '{$year}', '{$id}', '{$etab->AuPlus4Fois}', '{$etab->AuMoins5Fois}',
-            '{$etab->TotalSessions}', '{$etab->DifferentsUsers}', '{$etab->TotalPersActive}')";
-        $conn->query($sql);
     }
 
     $sql = "INSERT INTO stats_services (
@@ -89,8 +84,10 @@ function importDataEtabs($folder) {
         enseignant__au_plus_quatre_fois, enseignant__au_moins_cinq_fois, enseignant__total_sessions, enseignant__differents_users,
         perso_etab_non_ens__au_plus_quatre_fois, perso_etab_non_ens__au_moins_cinq_fois, perso_etab_non_ens__total_sessions, perso_etab_non_ens__differents_users,
         perso_collec__au_plus_quatre_fois, perso_collec__au_moins_cinq_fois, perso_collec__total_sessions, perso_collec__differents_users,
-        tuteur_stage__au_plus_quatre_fois, tuteur_stage__au_moins_cinq_fois, tuteur_stage__total_sessions, tuteur_stage__differents_users
+        tuteur_stage__au_plus_quatre_fois, tuteur_stage__au_moins_cinq_fois, tuteur_stage__total_sessions, tuteur_stage__differents_users,
+        au_plus_quatre_fois, au_moins_cinq_fois, total_sessions, differents_users
     ) VALUES (
+        ?, ?, ?, ?,
         ?, ?, ?, ?,
         ?, ?, ?, ?,
         ?, ?, ?, ?,
@@ -102,10 +99,10 @@ function importDataEtabs($folder) {
     $stmtService = $conn->prepare($sql);
 
     if ($stmtService === false) {
-        die("Erreur lors de la préparation de la requête 2");
+        die("Erreur lors de la préparation de la requête sur le service");
     }
 
-    $sql = "INSERT INTO stats_services (
+    $sql = "INSERT INTO stats_etabs (
         mois, annee, id_lycee,
         parent__total_pers_actives, parent__au_plus_quatre_fois, parent__au_moins_cinq_fois,
             parent__total_sessions, parent__differents_users, parent__tps_moyen_minutes,
@@ -118,7 +115,8 @@ function importDataEtabs($folder) {
         perso_collec__total_pers_actives, perso_collec__au_plus_quatre_fois, perso_collec__au_moins_cinq_fois,
             perso_collec__total_sessions, perso_collec__differents_users, perso_collec__tps_moyen_minutes,
         tuteur_stage__total_pers_actives, tuteur_stage__au_plus_quatre_fois, tuteur_stage__au_moins_cinq_fois,
-            tuteur_stage__total_sessions, tuteur_stage__differents_users, tuteur_stage__tps_moyen_minutes
+            tuteur_stage__total_sessions, tuteur_stage__differents_users, tuteur_stage__tps_moyen_minutes,
+        total_pers_actives, au_plus_quatre_fois, au_moins_cinq_fois, total_sessions, differents_users, tps_moyen_minutes
     ) VALUES (
         ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
@@ -126,23 +124,24 @@ function importDataEtabs($folder) {
         ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?
     )";
-    $stmtProfilsGlobaux = $conn->prepare($sql);
+    $stmtEtab = $conn->prepare($sql);
 
-    if ($stmtProfilsGlobaux === false) {
-        die("Erreur lors de la préparation de la requête 2");
+    if ($stmtEtab === false) {
+        die("Erreur lors de la préparation de la requête sur l'établissement");
     }
 
     foreach ($arrEtabs as $etab) {
         if (file_exists("{$folder}/mois_{$etab['siren']}.xml")) {
             vlog("Etablissement {$etab['name']}");
-            importDataEtab($etab, "{$folder}/mois_{$etab['siren']}.xml", $month, $year, $stmtService, $stmtProfilsGlobaux);
+            importDataEtab($etab, "{$folder}/mois_{$etab['siren']}.xml", $month, $year, $stmtService, $stmtEtab);
         }
     }
 
     $stmtService->close();
-    $stmtProfilsGlobaux->close();
+    $stmtEtab->close();
 }
 
 /**
@@ -153,9 +152,9 @@ function importDataEtabs($folder) {
  * @param string $month Le mois
  * @param string $year L'année
  * @param object $stmtService Une requête d'insertion préparée pour les donnée d'un service
- * @param object $stmtProfilsGlobaux Une requête d'insertion préparée pour les donnée de profils globaux
+ * @param object $stmtEtab Une requête d'insertion préparée pour les donnée de profils globaux
  */
-function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtProfilsGlobaux) {
+function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtEtab) {
     global $conn;
     $xml = simplexml_load_file($f);
     $profils = $xml->xpath('/Etablissement/ProfilsGlobaux/ProfilGlobal');
@@ -165,8 +164,8 @@ function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtProfilsGlob
         $users[(string)$profil['name']] = $profil;
     }
 
-    $etablissement = $xml->xpath('/Etablissement');
-    $stmtProfilsGlobaux->bind_param("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+    $etablissement = $xml->xpath('/Etablissement')[0];
+    $stmtEtab->bind_param("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
         $month, $year, $etab['id'],
         $users['Parent']->TotalPersActives, $users['Parent']->AuPlus4Fois, $users['Parent']->AuMoins5Fois,
             $users['Parent']->TotalSessions, $users['Parent']->DifferentsUsers, $users['Parent']->TpsMoyenMinutes,
@@ -179,8 +178,11 @@ function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtProfilsGlob
         $users['Personnel de collectivité']->TotalPersActives, $users['Personnel de collectivité']->AuPlus4Fois, $users['Personnel de collectivité']->AuMoins5Fois,
             $users['Personnel de collectivité']->TotalSessions, $users['Personnel de collectivité']->DifferentsUsers, $users['Personnel de collectivité']->TpsMoyenMinutes,
         $users['Tuteur de stage']->TotalPersActives, $users['Tuteur de stage']->AuPlus4Fois, $users['Tuteur de stage']->AuMoins5Fois,
-            $users['Tuteur de stage']->TotalSessions, $users['Tuteur de stage']->DifferentsUsers, $users['Tuteur de stage']->TpsMoyenMinutes);
-    $stmtProfilsGlobaux->execute();
+            $users['Tuteur de stage']->TotalSessions, $users['Tuteur de stage']->DifferentsUsers, $users['Tuteur de stage']->TpsMoyenMinutes,
+        $etablissement->TotalPersActives, $etablissement->AuPlus4Fois, $etablissement->AuMoins5Fois,
+            $etablissement->TotalSessions, $etablissement->DifferentsUsers, $etablissement->TpsMoyenMinutes
+        );
+    $stmtEtab->execute();
     //echo "ajout d'une ligne stats_services pour un profil global";
 
     $services = $xml->xpath('/Etablissement/Services/Service');
@@ -195,7 +197,7 @@ function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtProfilsGlob
             $users[(string)$profil['name']] = $profil;
         }
 
-        $stmtService->bind_param("iiiiiiiiiiiiiiiiiiiiiiiiiiii", $month, $year, $etab['id'], $idService,
+        $stmtService->bind_param("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii", $month, $year, $etab['id'], $idService,
             $users['Parent']->AuPlus4Fois, $users['Parent']->AuMoins5Fois,
                 $users['Parent']->TotalSessions, $users['Parent']->DifferentsUsers,
             $users['Elève']->AuPlus4Fois, $users['Elève']->AuMoins5Fois,
@@ -207,7 +209,9 @@ function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtProfilsGlob
             $users['Personnel de collectivité']->AuPlus4Fois, $users['Personnel de collectivité']->AuMoins5Fois,
                 $users['Personnel de collectivité']->TotalSessions, $users['Personnel de collectivité']->DifferentsUsers,
             $users['Tuteur de stage']->AuPlus4Fois, $users['Tuteur de stage']->AuMoins5Fois,
-                $users['Tuteur de stage']->TotalSessions, $users['Tuteur de stage']->DifferentsUsers);
+                $users['Tuteur de stage']->TotalSessions, $users['Tuteur de stage']->DifferentsUsers,
+            $service->AuPlus4Fois, $service->AuMoins5Fois, $service->TotalSessions, $service->DifferentsUsers
+        );
         $stmtService->execute();
     }
 }

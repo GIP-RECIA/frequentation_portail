@@ -223,7 +223,7 @@ if (isset($_REQUEST["top"])) {
                 </div>
             </div>
             <?php
-            echo displayTable($dateDebut, $dateFin);
+            echo displayTable($dateDebut, $dateFin, $etab);
             ?>
         </div>
     </section>
