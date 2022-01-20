@@ -13,7 +13,6 @@ $cas_context = $annuaireParams["context"];
 $cas_server_ca_cert_path = $annuaireParams["certificat"];
 
 $cas_reals_hosts = [$cas_host];
-$protocole = SAML_VERSION_1_1;
 //si uniquement tranmission attribut
 phpCAS::setDebug();
 phpCAS::setVerbose(true);
@@ -40,6 +39,7 @@ if ($conn->connect_error) {
 $siren = $_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'];
 //enseignant: National_ENS
 //directeur: National_DIR
+// TODO: étudier le système de droits
 $role = $_SESSION['phpCAS']['attributes']['ENTPersonProfils'];
 $etablissement = !empty($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']) ? get_etablissement_id_by_siren($siren) : null;
 $show_simple_data = !empty($etablissement) && $role == "National_DIR";
@@ -47,8 +47,6 @@ if (!empty($etablissement)) {
     $_REQUEST["etab"] = $etablissement;
 }
 
-$dateDebut = getDateDebutMin();
-$dateFin = getDateFinMax();
 $mois = "-1";
 $etab = "-1";
 $etabType = [];
@@ -112,15 +110,14 @@ if (isset($_REQUEST["top"])) {
         <link rel="stylesheet" href="./assets/css/styles.css"/>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
-                var checkbox = document.querySelector('input[name="switch1"]');
+                const checkbox = document.querySelector('input[name="switch1"]');
 
                 checkbox.addEventListener('change', function () {
+                    const result = document.getElementById("result");
                     if (checkbox.checked) {
-                        var element = document.getElementById("result").classList.remove("population");
-                        var element = document.getElementById("result").classList.add("ratio");
+                        result.classList.replace("population", "ratio");
                     } else {
-                        var element = document.getElementById("result").classList.remove("ratio");
-                        var element = document.getElementById("result").classList.add("population");
+                        result.classList.replace("ratio", "population");
                     }
                 });
             });
@@ -223,7 +220,7 @@ if (isset($_REQUEST["top"])) {
                 </div>
             </div>
             <?php
-            echo displayTable($dateDebut, $dateFin, $etab);
+            echo displayTable($etab);
             ?>
         </div>
     </section>

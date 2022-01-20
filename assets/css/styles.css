@@ -137,23 +137,8 @@ table#result tbody tr td:first-child {
     text-align: left;
 }
 
-table#result.population thead tr:first-child th:nth-child(4),
-table#result.population thead tr:nth-child(2) th:nth-child(n+11),
-table#result.population tbody tr td:nth-child(n+11) {
-    display: none
-}
-
-table#result.ratio thead tr:first-child th:nth-child(3),
-table#result.ratio thead tr:nth-child(2) th:nth-child(6),
-table#result.ratio thead tr:nth-child(2) th:nth-child(7),
-table#result.ratio thead tr:nth-child(2) th:nth-child(8),
-table#result.ratio thead tr:nth-child(2) th:nth-child(9),
-table#result.ratio thead tr:nth-child(2) th:nth-child(10),
-table#result.ratio tbody tr td:nth-child(6),
-table#result.ratio tbody tr td:nth-child(7),
-table#result.ratio tbody tr td:nth-child(8),
-table#result.ratio tbody tr td:nth-child(9),
-table#result.ratio tbody tr td:nth-child(10) {
+table#result.population .ratio-elem,
+table#result.ratio .population-elem {
     display: none;
 }
 

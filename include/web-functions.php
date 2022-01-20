@@ -25,20 +25,17 @@ function nice($data)
     echo "<pre>" . print_r($data, true) . "</pre>";
 }
 
-function displayTable($dateDebut, $dateFin, $etabId)
+function displayTable($etabId)
 {
     global $resultType;
 
     $html = '<div class="table-responsive"><table id="result" class="table table-sm table-striped population">';
 
     $resultLabel = "";
-    $results = array();
 
     if ($resultType == 'services') {
-        $results = getServices();
         $resultLabel = "Service";
     } else {
-        $results = getEtablissements();
         $resultLabel = "Etablissement";
     }
 
@@ -46,8 +43,8 @@ function displayTable($dateDebut, $dateFin, $etabId)
     $html .= '<tr>';
     $html .= '<th></th>';
     $html .= '<th colspan="4">Visiteurs - Visites</th>';
-    $html .= '<th colspan="5">Populations</th>';
-    $html .= '<th colspan="4">Ratio par rapport aux utilisateurs potentiels</th>';
+    $html .= '<th colspan="6" class="population-elem">Populations</th>';
+    $html .= '<th colspan="6" class="ratio-elem">Ratio par rapport aux utilisateurs potentiels</th>';
     $html .= '</tr>';
     $html .= '<tr>';
     $html .= '<th>' . $resultLabel . '</th>';
@@ -55,116 +52,84 @@ function displayTable($dateDebut, $dateFin, $etabId)
     $html .= '<th>Au moins cinq fois</th>';
     $html .= '<th>Nb. visiteurs</th>';
     $html .= '<th>Total visites</th>';
-    $html .= '<th>Parent</th>';
-    $html .= '<th>Elève</th>';
-    $html .= '<th>Enseignant</th>';
-    $html .= '<th>Personnel d\'établissement non enseignant</th>';
-    $html .= '<th>Personnel de collectivité</th>';
-    $html .= '<th>Elève</th>';
-    $html .= '<th>Enseignant</th>';
-    $html .= '<th>Personnel d\'établissement non enseignant</th>';
-    $html .= '<th>Personnel de collectivité</th>';
+    $html .= '<th class="population-elem">Parent</th>';
+    $html .= '<th class="population-elem">Élève</th>';
+    $html .= '<th class="population-elem">Enseignant</th>';
+    $html .= '<th class="population-elem">Personnel d\'établissement non enseignant</th>';
+    $html .= '<th class="population-elem">Personnel de collectivité</th>';
+    $html .= '<th class="population-elem">Tuteur de stage</th>';
+    $html .= '<th class="ratio-elem">Parent</th>';
+    $html .= '<th class="ratio-elem">Élève</th>';
+    $html .= '<th class="ratio-elem">Enseignant</th>';
+    $html .= '<th class="ratio-elem">Personnel d\'établissement non enseignant</th>';
+    $html .= '<th class="ratio-elem">Personnel de collectivité</th>';
+    $html .= '<th class="ratio-elem">Tuteur de stage</th>';
     $html .= '</tr>';
     $html .= '</thead>';
     $html .= '<tbody>';
-    // TODO: ici il faut insérer les lignes
-    /*if ($resultType == 'services') {
-        // TODO: en cours
-        $results = getServices();
-        $resultLabel = "Service";
-    } else {
-        // TODO: a faire
-    }*/
-    // TODO: dans un premier temps on ne va faire que les lignes des services en dur
-    $html .= getStatsEtablissementHTML($etabId);
+    $html .= getStatsHTML($etabId);
     $html .= '</tbody>';
     $html .= '</table>';
     $html .= '</div>';
 
-
-    $resultsJson = json_encode(array_keys($results));
-
-    // TODO: virer tous ce code qui va devenir mort
     $ajax = '
         <script type="text/javascript">
-
-            var results = ' . $resultsJson . ';
-
             $( document ).ready(function() {
+                jQuery.fn.dataTableExt.oSort["percent-asc"]  = function(x,y) {
+                    const xa = parseFloat(x.split("%")[0]);
+                    const ya = parseFloat(y.split("%")[0]);
+                    return ((xa < ya) ? -1 : ((xa > ya) ? 1 : 0));
+                };
+                 
+                jQuery.fn.dataTableExt.oSort["percent-desc"] = function(x,y) {
+                    const xa = parseFloat(x.split("%")[0]);
+                    const ya = parseFloat(y.split("%")[0]);
+                    return ((xa < ya) ? 1 : ((xa > ya) ? -1 : 0));
+                };
 
-                //results.forEach(displayResult);
-
-                function displayResult(value, index, array) {
+                const perType = { "sType": "percent" };
+                
+                $(\'.top20\').click (function () {
                     $.ajax({
-                        url: "./index.php",
+                        url: "./index.php?top",
                         type: "POST",
-                        async: true, 
+                        async: false, 
                         data: ({
-                            resultId: value,
-                            dateDebut: $(\'#dateDebut\').val(),
-                            dateFin: $(\'#dateFin\').val(),
-                            etab: $(\'#etab\').val(),
-                            etabType: $(\'#etabType\').val(),
-                            mois: $(\'#mois\').val(),
-                            resultType: $(\'#resultType\').val()
+                            serviceId: $(this).attr(\'data-serviceid\'),
                         }),
                         complete: function(data){
-                            $(\'#result > tbody:last-child\').append(data.responseText);
-
-                            if (index == (array.length - 1)) {
-
-                                $(\'#result\').DataTable({ 
-                                    "paging": false,
-                                    "ordering": true,
-                                    dom: \'Bfrtip\',
-                                    buttons: [
-                                        {
-                                            extend: \'excelHtml5\',
-                                            exportOptions: {
-                                                format: {
-                                                    body: function (data, row, column, node) {
-                                                        if (column == 0) {
-                                                            return data.replace(/<\/?span[^>]*>/g,\'\').replace(\'TOP\',\'\');
-                                                        }
-                                                        else
-                                                            return data;
-                                                    }
-                                                }
-                                            }    
-                                        }
-                                    ]
-                                });
-
-                                $(\'.top20\').click (function () {
-                                    $.ajax({
-                                        url: "./index.php?top",
-                                        type: "POST",
-                                        async: false, 
-                                        data: ({
-                                            serviceId: $(this).attr(\'data-serviceid\'),
-                                        }),
-                                        complete: function(data){
-                                            $(\'#topContent\').html(data.responseText);
-                                            $(\'#topModal\').modal(\'show\'); 
-                                        }
-                                    });
-                                });
-
-                            }
+                            $(\'#topContent\').html(data.responseText);
+                            $(\'#topModal\').modal(\'show\'); 
                         }
                     });
-                }   
-                
-                /*$(document).ready( function () {
-                    $(\'#result\').DataTable({ 
-                        "paging": false,
-                        "ordering": true,
-                        dom: \'Bfrtip\',
-                        buttons: [
-                            \'excel\'
-                        ]
-                    });
-                } );*/
+                });
+
+                $(\'#result\').DataTable({ 
+                    "paging": false,
+                    "ordering": true,
+                    dom: \'Bfrtip\',
+                    buttons: [
+                        {
+                            extend: \'excelHtml5\',
+                            exportOptions: {
+                                format: {
+                                    body: function (data, row, column, node) {
+                                        if (column == 0) {
+                                            return data.replace(/<\/?span[^>]*>/g,\'\').replace(\'TOP\',\'\');
+                                        } else {
+                                            return data.replace(/<br>/g,\' - \');
+                                        }
+                                    }
+                                }
+                            }    
+                        }
+                    ],
+                    "aoColumns": [
+                        null, null, null, null, null,
+                        null, null, null, null, null, null,
+                        perType, perType, perType, perType, perType, perType,
+                    ]
+                });
 
                 $(\'input:radio[name="vue"]\').change(function(){
                     if ($(this).is(\':checked\')) {
@@ -198,6 +163,7 @@ function displayTable($dateDebut, $dateFin, $etabId)
     return $html;
 }
 
+// TODO: revoir cette partie encore
 function getTopHTML($serviceId)
 {
     global $conn;
@@ -208,15 +174,15 @@ function getTopHTML($serviceId)
     $sql = "SELECT s.`id_lycee`, e.nom, SUM(s.total_visites) as total, nb_visiteurs, ceil(avg(eleve)) as eleve, ceil(avg(enseignant)) as enseignant, ceil(avg(parent)) as parent, ceil(avg(personnel_etablissement_non_enseignant)) as personnel_etablissement_non_enseignant, ceil(avg(personnel_collectivite)) as personnel_collectivite, se.total_eleve, se.total_enseignant, se.total_personnel_etablissement_non_enseignant, se.total_personnel_collectivite FROM `stats` as s , etablissements as e, stats_etab as se WHERE s.id_lycee = e.id and s.id_lycee = se.id_lycee and s.id_service = " . $conn->real_escape_string($serviceId) . "  group by id_lycee order by total desc limit 20";
 
     $stats = [];
-    if ($res = mysqli_query($conn, $sql)) {
-        if ($row = mysqli_fetch_array($res)) {
+    if ($res = $conn->query($sql)) {
+        if ($row = $res->fetch_array()) {
             $stats = array_merge($stats, $row);
         }
-        mysqli_free_result($res);
+        $res->free_result();
     }
 
-    if ($res = mysqli_query($conn, $sql)) {
-        while ($row = mysqli_fetch_array($res)) {
+    if ($res = $conn->query($sql)) {
+        while ($row = $res->fetch_array()) {
 
             $eleves = round($row['eleve'] / $row['total_eleve'] * 100, 0);
             if (is_nan($eleves)) $eleves = 0;
@@ -230,7 +196,7 @@ function getTopHTML($serviceId)
             $html .= "<tr><td>" . $row['nom'] . "</td><td>" . $row['total'] . "</td><td>" . $eleves . "%</td><td>" . $enseignants . "%</td><td>" . $autres . "%</td></tr>";
 
         }
-        mysqli_free_result($res);
+        $res->free_result();
     }
     $html .= "</table>";
 
@@ -241,41 +207,89 @@ function getTopHTML($serviceId)
 function get_etablissement_id_by_siren($siren)
 {
     global $conn;
-    $sql = 'SELECT * from etablissements where siren = "' . $siren . '"';
+    $sql = "SELECT * from etablissements where siren = '{$siren}'";
     $query = $conn->query($sql);
     $result = $query->fetch_assoc();
-    if (isset($result['id'])) return $result['id'];
+
+    if (isset($result['id'])) {
+        return $result['id'];
+    }
+
     return false;
 }
 
-function getStatsEtablissementHTML($etabId) {
-    global $dateDebut, $dateFin, $etab, $etabType, $resultType, $mois, $listMois, $show_simple_data;
+/**
+ * Retourne le code html du tableau de la liste des services/établissements
+ *
+ * @param $etabId
+ */
+function getStatsHTML($etabId) {
+    global $etab, $etabType, $resultType, $mois, $listMois, $show_simple_data;
 
-    //print_r(getStatsEtablissement($etabId, $etabType));
-    $stats = getStatsEtablissement($etabId, $etabType);
+    $serviceView = $resultType == 'services';
+    $countMois = count($listMois);
+    
+    if ($mois !== '-1') {
+        $countMois = 1;
+    }
+
+    $stats = getStats($etabId, $etabType);
     $statsServices = $stats['statsServices'];
-    $statsEtab = $stats['statsEtab'];
+    $statsEtabs = $stats['statsEtabs'];
     $html = '';
 
     foreach ($statsServices as $service) {
+        if ($serviceView) {
+            $statsEtab = $statsEtabs;
+        } else {
+            $statsEtab = $statsEtabs[$service['id']];
+        }
+
+        $parent = intval($service['parent__differents_users']);
+        $eleve = intval($service['eleve__differents_users']);
+        $enseignant = intval($service['enseignant__differents_users']);
+        $perso_etab_non_ens = intval($service['perso_etab_non_ens__differents_users']);
+        $perso_collec = intval($service['perso_collec__differents_users']);
+        $tuteur_stage = intval($service['tuteur_stage__differents_users']);
+        $avgParent = intval($parent/$countMois);
+        $avgEleve = intval($eleve/$countMois);
+        $avgEnseignant = intval($enseignant/$countMois);
+        $avgPerso_etab_non_ens = intval($perso_etab_non_ens/$countMois);
+        $avgPerso_collec = intval($perso_collec/$countMois);
+        $avgTuteur_stage = intval($tuteur_stage/$countMois);
+        $total_parent = intval($statsEtab['parent__total_pers_actives']);
+        $total_eleve = intval($statsEtab['eleve__total_pers_actives']);
+        $total_enseignant = intval($statsEtab['enseignant__total_pers_actives']);
+        $total_perso_etab_non_ens = intval($statsEtab['perso_etab_non_ens__total_pers_actives']);
+        $total_perso_collec = intval($statsEtab['perso_collec__total_pers_actives']);
+        $total_tuteur_stage = intval($statsEtab['tuteur_stage__total_pers_actives']);
+        $top = "";
+
+        if ($serviceView) {
+            $top = "<span class=\"top20\" data-serviceid=\"{$service['id']}\" class=\"float-right\">TOP</span>";
+        }
+
         $html .= "<tr>";
 
-        $html .= "<td><span class=\"top20\" data-serviceid=\"{$service['id']}\" class=\"float-right\">TOP</span>{$service['nom']}</td>";
+        $html .= "<td>{$top}{$service['nom']}</td>";
         $html .= "<td>{$service['au_plus_quatre_fois']}</td>";
         $html .= "<td>{$service['au_moins_cinq_fois']}</td>";
         $html .= "<td>{$service['differents_users']}</td>";
         $html .= "<td>{$service['total_sessions']}</td>";
 
-        $html .= "<td></td>";
-        $html .= "<td></td>";
-        $html .= "<td></td>";
-        $html .= "<td></td>";
-        $html .= "<td></td>";
+        $html .= "<td class=\"population-elem\">{$parent}</td>";
+        $html .= "<td class=\"population-elem\">{$eleve}</td>";
+        $html .= "<td class=\"population-elem\">{$enseignant}</td>";
+        $html .= "<td class=\"population-elem\">{$perso_etab_non_ens}</td>";
+        $html .= "<td class=\"population-elem\">{$perso_collec}</td>";
+        $html .= "<td class=\"population-elem\">{$tuteur_stage}</td>";
 
-        $html .= "<td></td>";
-        $html .= "<td></td>";
-        $html .= "<td></td>";
-        $html .= "<td></td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_parent, $avgParent)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_eleve, $avgEleve)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_enseignant, $avgEnseignant)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_perso_etab_non_ens, $avgPerso_etab_non_ens)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_perso_collec, $avgPerso_collec)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_tuteur_stage, $avgTuteur_stage)."</td>";
 
         $html .= "</tr>";
     }
@@ -283,81 +297,31 @@ function getStatsEtablissementHTML($etabId) {
     return $html;
 }
 
-function getStatsHTML($resultId)
-{
-
-    global $dateDebut, $dateFin, $etab, $etabType, $resultType, $mois, $listMois, $show_simple_data;
-
-    if ($resultType == 'services')
-        $resultNom = getServiceNameFromId($resultId);
-
-    else
-        $resultNom = getEtabNameFromId($resultId);
-
-
-    $html = '<tr>';
-
-    $top = "";
-    if ($resultType == 'services' && !$show_simple_data)
-        $top = '<span class="top20" data-serviceid="' . $resultId . '" class="float-right">TOP</span>';
-
-    $html .= '<td>' . $top . $resultNom . '</td>';
-
-    $stats = getStats($dateDebut, $dateFin, $resultId, $etab, $etabType);
-
-    $html .= '<td>' . $stats['au_plus_quatre_fois'] . '</td>';
-    $html .= '<td>' . $stats['au_moins_cinq_fois'] . '</td>';
-    $html .= '<td>' . $stats['nb_visiteurs'] . '</td>';
-    $html .= '<td>' . $stats['total_visites'] . '</td>';
-
-    $parent = intval($stats['parent']); //ceil(intval($stats['parent']) / $days);
-    $eleve = intval($stats['eleve']); //ceil(intval($stats['eleve']) / $days);
-    $enseignant = intval($stats['enseignant']); //ceil(intval($stats['enseignant']) / $days);
-    $personnelEtablissementNonEnseignant = intval($stats['personnel_etablissement_non_enseignant']); //ceil(intval($stats['personnel_etablissement_non_enseignant']) / $days);
-    $personnelCollectivite = intval($stats['personnel_collectivite']);//ceil(intval($stats['personnel_collectivite']) / $days);
-
-    $countMois = count($listMois);
-    if ($mois != '-1')
-        $countMois = 1;
-
-    $avgParent = ceil(intval($stats['parent']) / $countMois);
-    $avgEleve = ceil(intval($stats['eleve']) / $countMois);
-    $avgEnseignant = ceil(intval($stats['enseignant']) / $countMois);
-    $avgPrsonnelEtablissementNonEnseignant = ceil(intval($stats['personnel_etablissement_non_enseignant']) / $countMois);
-    $avgPersonnelCollectivite = ceil(intval($stats['personnel_collectivite']) / $countMois);
-
-
-    $html .= '<td>' . $parent . '</td>';
-    $html .= '<td>' . $eleve . '</td>';
-    $html .= '<td>' . $enseignant . '</td>';
-    $html .= '<td>' . $personnelEtablissementNonEnseignant . '</td>';
-    $html .= '<td>' . $personnelCollectivite . '</td>';
-
-    // Ici cela provient de la table stats_etab, sauf que cette table n'est jamais remplie (total_eleve, total_enseignant, total_personnel_etablissement_non_enseignant, total_personnel_collectivite)
-    // res : 0% (car ici on a rien en base) <br> VAL (car provient d'une autre table) / VIDE (car on a rien en base)
-    // ATTENTION, ici on fait un intvalue sur le résultat booléen de la comparaison au lien du champ numérique ????
-    $html .= '<td>' . ((intval($stats['total_eleve'] == 0)) ? '0' : (round($avgEleve / intval($stats['total_eleve']) * 100, 0))) . '%<br/> (' . $avgEleve . ' / ' . $stats['total_eleve'] . ')</td>';
-    $html .= '<td>' . ((intval($stats['total_enseignant'] == 0)) ? '0' : (round($avgEnseignant / intval($stats['total_enseignant']) * 100, 0))) . '%<br/> (' . $avgEnseignant . ' / ' . $stats['total_enseignant'] . ')</td>';
-    $html .= '<td>' . ((intval($stats['total_personnel_etablissement_non_enseignant'] == 0)) ? '0' : (round($avgPrsonnelEtablissementNonEnseignant / intval($stats['total_personnel_etablissement_non_enseignant']) * 100, 0))) . '%</td>';
-    $html .= '<td>' . ((intval($stats['total_personnel_collectivite'] == 0)) ? '0' : (round($avgPersonnelCollectivite / intval($stats['total_personnel_collectivite']) * 100, 0))) . '%</td>';
-
-    $html .= '</tr>';
-
-    return $html;
-
-}
-
 /**
- * Récupère les statistiques des différents services d'une établissement
+ * Récupère les statistiques des différents services d'une établissement ou des différents établissement
+ *
+ * @param $etab     L'identifiant de l'établissement
+ * @param $etabType
  */
-function getStatsEtablissement($etab, $etabType) {
+function getStats($etab, $etabType) {
     global $conn, $resultType, $mois;
 
+    $serviceView = $resultType == 'services';
     $where = [];
     $statsServices = [];
+    $statsEtabs = [];
+    $join = "";
+    $from = "";
 
     if ($etab !== '-1') {
         $where[] = "id_lycee = {$etab}";
+    }
+
+    if ($mois !== '-1') {
+        $r = explode(' / ', $mois);
+        $m = $r[0];
+        $a = $r[1];
+        $where[] = "mois = " . $m . " and annee = " . $a . " ";
     }
 
     $where = implode(' AND ', $where);
@@ -366,10 +330,18 @@ function getStatsEtablissement($etab, $etabType) {
         $where = " WHERE {$where}";
     }
 
+    if ($serviceView) {
+        $join = "INNER JOIN services as e ON e.id = s.id_service";
+        $from = "FROM stats_services as s";
+    } else {
+        $join = "INNER JOIN etablissements as e ON e.id = s.id_lycee";
+        $from = "FROM stats_etabs as s";
+    }
+
     $sql =
         "SELECT
-            sv.id as id,
-            sv.nom as nom,
+            e.id as id,
+            e.nom as nom,
             SUM(s.au_plus_quatre_fois) as au_plus_quatre_fois,
             SUM(s.au_moins_cinq_fois) as au_moins_cinq_fois,
             SUM(s.differents_users) as differents_users,
@@ -380,145 +352,49 @@ function getStatsEtablissement($etab, $etabType) {
             SUM(s.perso_etab_non_ens__differents_users) as perso_etab_non_ens__differents_users,
             SUM(s.perso_collec__differents_users) as perso_collec__differents_users,
             SUM(s.tuteur_stage__differents_users) as tuteur_stage__differents_users
-        FROM stats_services as s
-        INNER JOIN services as sv ON sv.id = s.id_service
+        {$from}
+        {$join}
         {$where}
-        GROUP BY id_service
-        ORDER BY nom";
+        GROUP BY e.id
+        ORDER BY e.nom";
+
 
     if ($result = $conn->query($sql)) {
         while ($row = $result->fetch_array(MYSQLI_ASSOC)) {
             $statsServices[] = $row;
         }
+
+        $result->free_result();
     }
 
-    return ['statsServices' => $statsServices, 'statsEtab' => []];
-}
+    $sql =
+        "SELECT
+            id_lycee as id,
+            SUM(parent__total_pers_actives) as parent__total_pers_actives,
+            SUM(eleve__total_pers_actives) as eleve__total_pers_actives,
+            SUM(enseignant__total_pers_actives) as enseignant__total_pers_actives,
+            SUM(perso_etab_non_ens__total_pers_actives) as perso_etab_non_ens__total_pers_actives,
+            SUM(perso_collec__total_pers_actives) as perso_collec__total_pers_actives,
+            SUM(tuteur_stage__total_pers_actives) as tuteur_stage__total_pers_actives
+        FROM stats_etabs
+        {$where}
+        GROUP BY id_lycee";
 
-function getStats($dateDebut, $dateFin, $idResult, $etab, $etabType)
-{
-    global $conn, $resultType, $mois;
-
-    $stats = array(
-        'au_plus_quatre_fois' => 0,
-        'au_moins_cinq_fois' => 0,
-        'nb_visiteurs' => 0,
-        'total_visites' => 0,
-        'parent' => 0,
-        'eleve' => 0,
-        'enseignant' => 0,
-        'personnel_etablissement_non_enseignant' => 0,
-        'personnel_collectivite' => 0,
-        'total_eleve' => 0,
-        'total_enseignant' => 0,
-        'total_personnel_etablissement_non_enseignant' => 0,
-        'total_personnel_collectivite' => 0,
-    );
-
-    $where = array();
-    $table = "stats";
-
-    $groupby = "id_service";
-
-    if ($resultType == 'services') {
-        $where[] = "id_service = " . $idResult . " ";
-    } else {
-        $etab = $idResult;
-        $table = "stats_etab_mois";
-        $groupby = "id_lycee";
-    }
-
-    if ($mois != '-1') {
-        $r = explode(' / ', $mois);
-        $m = $r[0];
-        $a = $r[1];
-        $where[] = "mois = " . $m . " and annee = " . $a . " ";
-    }
-
-    /*if ($etab != '-1' && ($resultType != 'services')  ) {
-        $where[] = " id_lycee = " . $etab;
-    }*/
-
-    if ($etab != '-1') {
-        $where[] = " id_lycee = " . $etab;
-    }
-
-    if ((count($etabType) > 0) && ($resultType == 'services')) {
-        $etabs = "";
-        $sep = "";
-        foreach ($etabType as $t) {
-            $etabs .= $sep . "'" . $t . "'";
-            $sep = ",";
+    if ($result = $conn->query($sql)) {
+        if ($serviceView) {
+            if ($row = $result->fetch_array(MYSQLI_ASSOC)) {
+                $statsEtabs = $row;
+            }
+        } else {
+            while ($row = $result->fetch_array(MYSQLI_ASSOC)) {
+                $statsEtabs[$row['id']] = $row;
+            }
         }
-        $where[] = "  id_lycee IN (SELECT id FROM `etablissements` WHERE `type` IN (" . $etabs . "))";
+
+        $result->free_result();
     }
 
-    $where = implode(' AND ', $where);
-    $where = ' WHERE ' . $where;
-
-    if ($where == ' WHERE ')
-        $where = '';
-
-    $sql = "SELECT
-        SUM(au_plus_quatre_fois) as au_plus_quatre_fois,
-        SUM(au_moins_cinq_fois) as au_moins_cinq_fois,
-        SUM(nb_visiteurs) as nb_visiteurs,
-        SUM(total_visites) as total_visites,
-        CEIL(SUM(parent)) as parent,
-        CEIL(SUM(eleve)) as eleve,
-        CEIL(SUM(enseignant)) as enseignant,
-        CEIL(SUM(personnel_etablissement_non_enseignant)) as personnel_etablissement_non_enseignant,
-        CEIL(SUM(personnel_collectivite)) as personnel_collectivite
-        FROM " . $table . "
-        " . $where . "
-        GROUP BY " . $groupby;
-
-    if ($res = mysqli_query($conn, $sql)) {
-        if ($row = mysqli_fetch_array($res)) {
-            $stats = $row;
-        }
-        mysqli_free_result($res);
-    }
-
-    $table = "stats_etab";
-    $where = array();
-
-    if ($etab != '-1' && empty($etabType)) {
-        $where[] = "  id_lycee = " . $etab;
-    }
-
-    if (count($etabType) > 0) {
-        $etabs = "";
-        $sep = "";
-        foreach ($etabType as $t) {
-            $etabs .= $sep . "'" . $t . "'";
-            $sep = ",";
-        }
-        $where[] = "  id_lycee IN (SELECT id FROM `etablissements` WHERE `type` IN (" . $etabs . "))";
-    }
-
-    $where = implode(' AND ', $where);
-    $where = ' WHERE ' . $where;
-
-    if ($where == ' WHERE ')
-        $where = '';
-
-    $sql = "SELECT 
-                CEIL(SUM(total_eleve)) as total_eleve, 
-                CEIL(SUM(total_enseignant)) as total_enseignant, 
-                CEIL(SUM(total_personnel_etablissement_non_enseignant)) as total_personnel_etablissement_non_enseignant,
-                CEIL(SUM(total_personnel_collectivite)) as total_personnel_collectivite
-                FROM " . $table . "                
-                " . $where . "        
-                ";
-    if ($res = mysqli_query($conn, $sql)) {
-        if ($row = mysqli_fetch_array($res)) {
-            $stats = array_merge($stats, $row);
-        }
-        mysqli_free_result($res);
-    }
-
-    return $stats;
+    return ['statsServices' => $statsServices, 'statsEtabs' => $statsEtabs];
 }
 
 function getEtablissements()
@@ -526,21 +402,24 @@ function getEtablissements()
     global $conn, $etabType;
     $etabs = array();
     $where = "";
+
     if ($etabType != '-1' && !empty($etabType)) {
         foreach ($etabType as $type) {
             $where_etab[] = "type = '" . $type . "'";
         }
+
         $where_etab = implode(' OR ', $where_etab);
         $where = "WHERE " . $where_etab . "";
     }
 
     $sql = "SELECT * FROM etablissements " . $where;
 
-    if ($res = mysqli_query($conn, $sql)) {
-        while ($row = mysqli_fetch_array($res)) {
+    if ($res = $conn->query($sql)) {
+        while ($row = $res->fetch_array()) {
             $etabs[$row['id']] = $row['nom'];
         }
-        mysqli_free_result($res);
+
+        $res->free_result();
     }
     return $etabs;
 }
@@ -550,68 +429,19 @@ function getTypesEtablissements()
     global $conn;
     $types = array();
     $sql = "SELECT distinct(type) as t FROM etablissements order by t asc";
-    if ($res = mysqli_query($conn, $sql)) {
-        while ($row = mysqli_fetch_array($res)) {
+
+    if ($res = $conn->query($sql)) {
+        while ($row = $res->fetch_array()) {
             $types[] = $row['t'];
         }
-        mysqli_free_result($res);
+
+        $res->free_result($res);
     }
     return $types;
 }
 
-function getServices()
-{
-    global $conn;
-    $services = array();
-    $sql = "SELECT * FROM services";
-    if ($res = mysqli_query($conn, $sql)) {
-        while ($row = mysqli_fetch_array($res)) {
-            $services[$row['id']] = $row['nom'];
-        }
-        mysqli_free_result($res);
-    }
-    return $services;
-}
-
-function getServiceNameFromId($serviceId)
-{
-    global $conn;
-    $name = "";
-    $sql = "SELECT nom FROM services WHERE id = " . $serviceId;
-    if ($res = mysqli_query($conn, $sql)) {
-        $row = mysqli_fetch_assoc($res);
-        $name = $row['nom'];
-        mysqli_free_result($res);
-    }
-    return $name;
-}
-
-function getEtabNameFromId($etabId)
-{
-    global $conn;
-    $name = "";
-    $sql = "SELECT nom FROM etablissements WHERE id = " . $etabId;
-    if ($res = mysqli_query($conn, $sql)) {
-        $row = mysqli_fetch_assoc($res);
-        $name = $row['nom'];
-        mysqli_free_result($res);
-    }
-    return $name;
-}
-
-/**
- * Fonction inutilisé ?
- */
-function updateEtablissement($folder)
-{
-    global $conn;
-    $xml = simplexml_load_file($folder . '/etablissements_etat_lieux.xml');
-    $etabs = $xml->xpath('/Etablissements/Etablissement');
-    foreach ($etabs as $etab) {
-        if (strlen($etab['siren']) > 0)
-            $sql = "UPDATE etablissements set type = '" . $etab['type'] . "' WHERE siren = '" . $etab['siren'] . "'";
-        $conn->query($sql);
-    }
+function lineRatio($total, $avg) {
+    return $total === 0 ? '0' : ''.round(($avg/$total)*100, 2)."%<br/>({$avg} / {$total})";
 }
 
 
@@ -619,40 +449,12 @@ function getListMois()
 {
     global $conn;
     $list = array();
-    if ($res = mysqli_query($conn, "SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY m ASC")) {
-        while ($row = mysqli_fetch_array($res)) {
+    if ($res = $conn->query("SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY m ASC")) {
+        while ($row = $res->fetch_array()) {
             $list[] = $row['m'];
         }
-        mysqli_free_result($res);
+
+        $res->free_result();
     }
     return $list;
 }
-
-
-function getDateDebutMin()
-{
-    global $conn;
-    $dateDebut = '1970-01-01';
-    $result = mysqli_query($conn, "SELECT concat(annee, '-', LPAD(mois,2,'0')) as d FROM stats ORDER BY d ASC LIMIT 1");
-    $row = mysqli_fetch_assoc($result);
-    if ($row) {
-        $dateDebut = $row['jour'];
-    }
-
-    mysqli_free_result($result);
-    return $dateDebut;
-}
-
-function getDateFinMax()
-{
-    global $conn;
-    $dateFin = '1970-01-01';
-    $result = mysqli_query($conn, "SELECT max(jour) as jour FROM stats");
-    $row = mysqli_fetch_assoc($result);
-    if ($row) {
-        $dateFin = $row['jour'];
-    }
-    mysqli_free_result($result);
-    return $dateFin;
-}
-
