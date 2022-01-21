@@ -124,3 +124,21 @@ La commande à appeler :
 ```
 php import.php -d 2020/05 -c /chemin/vers/dossier
 ```
+
+## Les droits dans l'application
+
+### Utilisateur ayant un attribut ESCOSIRENCourant
+
+Les utilisateur ayant un attribut **ESCOSIRENCourant** ne pourront accéder qu'aux statistiques de cet établissement.
+
+La liste de sélection d'établissement sera donc désactivée, et la vue établissement n'affichera que l'établissement en question.
+
+### Utilisateur ayant le role National_DIR
+
+Les utilisateurs ayant le role **National_DIR** dans le champ **ENTPersonProfils** ne verront que leur établissement, les champs de sélections suivants seront donc masqués :
+* établissement
+* type
+* mois
+* sélecteur du type de vue
+
+L'affichage de statistiques se fera donc pour **Tous les mois** et non pour un mois précis.

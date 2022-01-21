@@ -72,94 +72,6 @@ function displayTable($etabId)
     $html .= '</table>';
     $html .= '</div>';
 
-    $ajax = '
-        <script type="text/javascript">
-            $( document ).ready(function() {
-                jQuery.fn.dataTableExt.oSort["percent-asc"]  = function(x,y) {
-                    const xa = parseFloat(x.split("%")[0]);
-                    const ya = parseFloat(y.split("%")[0]);
-                    return ((xa < ya) ? -1 : ((xa > ya) ? 1 : 0));
-                };
-                 
-                jQuery.fn.dataTableExt.oSort["percent-desc"] = function(x,y) {
-                    const xa = parseFloat(x.split("%")[0]);
-                    const ya = parseFloat(y.split("%")[0]);
-                    return ((xa < ya) ? 1 : ((xa > ya) ? -1 : 0));
-                };
-
-                const perType = { "sType": "percent" };
-                
-                $(\'.top20\').click (function () {
-                    $.ajax({
-                        url: "./index.php?top",
-                        type: "POST",
-                        async: false, 
-                        data: ({
-                            serviceId: $(this).attr(\'data-serviceid\'),
-                        }),
-                        complete: function(data){
-                            $(\'#topContent\').html(data.responseText);
-                            $(\'#topModal\').modal(\'show\'); 
-                        }
-                    });
-                });
-
-                $(\'#result\').DataTable({ 
-                    "paging": false,
-                    "ordering": true,
-                    dom: \'Bfrtip\',
-                    buttons: [
-                        {
-                            extend: \'excelHtml5\',
-                            exportOptions: {
-                                format: {
-                                    body: function (data, row, column, node) {
-                                        if (column == 0) {
-                                            return data.replace(/<\/?span[^>]*>/g,\'\').replace(\'TOP\',\'\');
-                                        } else {
-                                            return data.replace(/<br>/g,\' - \');
-                                        }
-                                    }
-                                }
-                            }    
-                        }
-                    ],
-                    "aoColumns": [
-                        null, null, null, null, null,
-                        null, null, null, null, null, null,
-                        perType, perType, perType, perType, perType, perType,
-                    ]
-                });
-
-                $(\'input:radio[name="vue"]\').change(function(){
-                    if ($(this).is(\':checked\')) {
-                        $(\'#resultType\').val($(this).val());
-                        $(\'#filterBtn\').click();
-                    }
-                });
-
-                $(\'#reset\').click (function () {
-                    $(\'#etab\').val(-1);
-                    $(\'#etabType\').val(null);
-                    $(\'#mois\').val(-1);
-                    $(location).attr(\'href\',\'/\');
-                });
-
-                $(\'#etab\').select2();
-
-                // Mutliple select Etablissement
-                $(\'.js-select2-mutliple\').select2({
-                    placeholder: "Tous le types"
-                });
-
-            })
-
-        </script>    
-    
-    ';
-
-    $html .= $ajax;
-
     return $html;
 }
 
@@ -435,7 +347,7 @@ function getTypesEtablissements()
             $types[] = $row['t'];
         }
 
-        $res->free_result($res);
+        $res->free_result();
     }
     return $types;
 }

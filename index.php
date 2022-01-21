@@ -35,14 +35,16 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-//$_SESSION['phpCAS']['attributes']['siren'] = "19450042700035"; //durzy
+//$_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'] = "19450042700035"; //durzy
+//unset($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']);
 $siren = $_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'];
 //enseignant: National_ENS
 //directeur: National_DIR
-// TODO: étudier le système de droits
 $role = $_SESSION['phpCAS']['attributes']['ENTPersonProfils'];
 $etablissement = !empty($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']) ? get_etablissement_id_by_siren($siren) : null;
+$etabReadOnly = $etablissement !== null ? true : false;
 $show_simple_data = !empty($etablissement) && $role == "National_DIR";
+
 if (!empty($etablissement)) {
     $_REQUEST["etab"] = $etablissement;
 }
@@ -85,9 +87,8 @@ if (isset($_REQUEST["top"])) {
 }
 
 ?>
-
-    <!doctype html>
-    <html lang="fr">
+<!doctype html>
+<html lang="fr">
     <head>
         <meta charset="utf-8">
         <title>Statistiques</title>
@@ -152,9 +153,15 @@ if (isset($_REQUEST["top"])) {
                                 <?php
 
                                 $etabs = getEtablissements();
-                                echo '<option value="-1">Tous les établissements</option>';
+
+                                if (!$etabReadOnly) {
+                                    echo '<option value="-1">Tous les établissements</option>';
+                                }
+
                                 foreach ($etabs as $id => $name) {
-                                    echo "<option value=" . $id . " " . (($etab == $id) ? " selected " : "") . ">" . $name . "</option>";
+                                    if (!$etabReadOnly || $etab == $id) {
+                                        echo "<option value=" . $id . " " . (($etab == $id) ? " selected " : "") . ">" . $name . "</option>";
+                                    }
                                 }
 
                                 ?>
@@ -246,11 +253,87 @@ if (isset($_REQUEST["top"])) {
     </div>
     </body>
     <script type="text/javascript">
+        $( document ).ready(function() {
+            jQuery.fn.dataTableExt.oSort["percent-asc"]  = function(x,y) {
+                const xa = parseFloat(x.split("%")[0]);
+                const ya = parseFloat(y.split("%")[0]);
+                return ((xa < ya) ? -1 : ((xa > ya) ? 1 : 0));
+            };
+                
+            jQuery.fn.dataTableExt.oSort["percent-desc"] = function(x,y) {
+                jQuery.fn.dataTableExt.oSort["percent-asc"](y, x);
+            };
+
+            const perType = { "sType": "percent" };
+            
+            $('.top20').click (function () {
+                $.ajax({
+                    url: "./index.php?top",
+                    type: "POST",
+                    async: false, 
+                    data: ({
+                        serviceId: $(this).attr('data-serviceid'),
+                    }),
+                    complete: function(data){
+                        $('#topContent').html(data.responseText);
+                        $('#topModal').modal('show'); 
+                    }
+                });
+            });
+
+            $('#result').DataTable({ 
+                "paging": false,
+                "ordering": true,
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        exportOptions: {
+                            format: {
+                                body: function (data, row, column, node) {
+                                    if (column == 0) {
+                                        return data.replace(/<\/?span[^>]*>/g,'').replace('TOP','');
+                                    } else {
+                                        return data.replace(/<br>/g,' - ');
+                                    }
+                                }
+                            }
+                        }    
+                    }
+                ],
+                "aoColumns": [
+                    null, null, null, null, null,
+                    null, null, null, null, null, null,
+                    perType, perType, perType, perType, perType, perType,
+                ]
+            });
+
+            $('input:radio[name="vue"]').change(function(){
+                if ($(this).is(':checked')) {
+                    $('#resultType').val($(this).val());
+                    $('#filterBtn').click();
+                }
+            });
+
+            $('#reset').click (function () {
+                $('#etab').val(-1);
+                $('#etabType').val(null);
+                $('#mois').val(-1);
+                $(location).attr('href','/');
+            });
+
+            $('#etab').select2({
+                disabled: <?php echo $etabReadOnly ? 'true' : 'false'; ?>
+            });
+
+            // Mutliple select Etablissement
+            $('.js-select2-mutliple').select2({
+                placeholder: "Tous le types"
+            });
+
+        })
     </script>
 
-    </html>
-
-
+</html>
 <?php
-
 $conn->close();
