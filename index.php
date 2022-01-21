@@ -51,7 +51,6 @@ if (!empty($etablissement)) {
 
 $mois = "-1";
 $etab = "-1";
-$etabType = [];
 $resultType = "services";
 
 $listMois = getListMois();
@@ -65,10 +64,6 @@ if (isset($_REQUEST)) {
 //$resultType = "etabs";
 if (isset($_REQUEST["etab"]))
     $etab = $_REQUEST["etab"];
-
-
-if (isset($_REQUEST["etabType"]))
-    $etabType = $_REQUEST["etabType"];
 
 if (isset($_REQUEST["mois"]))
     $mois = $_REQUEST["mois"];
@@ -162,21 +157,6 @@ if (isset($_REQUEST["top"])) {
                                     if (!$etabReadOnly || $etab == $id) {
                                         echo "<option value=" . $id . " " . (($etab == $id) ? " selected " : "") . ">" . $name . "</option>";
                                     }
-                                }
-
-                                ?>
-                            </select>
-                        </div>
-                        <div class="form-group mr-2 mb-3">
-                            <label for="etabType" class="sr-only">catégorie</label>
-                            <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple"
-                                    multiple="multiple">
-                                <?php
-
-                                $types = getTypesEtablissements();
-                                //echo '<option value="-1">Tous les types</option>';
-                                foreach ($types as $name) {
-                                    echo "<option value=\"" . $name . "\"" . ((in_array($name, $etabType)) ? " selected " : "") . ">" . $name . "</option>";
                                 }
 
                                 ?>
@@ -318,7 +298,6 @@ if (isset($_REQUEST["top"])) {
 
             $('#reset').click (function () {
                 $('#etab').val(-1);
-                $('#etabType').val(null);
                 $('#mois').val(-1);
                 $(location).attr('href','/');
             });

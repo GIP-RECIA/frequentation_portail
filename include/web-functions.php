@@ -73,7 +73,6 @@ function displayTable($etabId) {
     return $html;
 }
 
-// TODO: revoir cette partie encore
 function getTopHTML($serviceId) {
     global $conn;
     $etabs = [];
@@ -319,20 +318,11 @@ function getStats($etab) {
 }
 
 function getEtablissements() {
-    global $conn, $etabType;
+    global $conn;
     $etabs = [];
     $where = "";
 
-    if ($etabType != '-1' && !empty($etabType)) {
-        foreach ($etabType as $type) {
-            $where_etab[] = "type = '" . $type . "'";
-        }
-
-        $where_etab = implode(' OR ', $where_etab);
-        $where = "WHERE " . $where_etab . "";
-    }
-
-    $sql = "SELECT * FROM etablissements " . $where;
+    $sql = "SELECT * FROM etablissements {$where}";
 
     if ($res = $conn->query($sql)) {
         while ($row = $res->fetch_array()) {
@@ -342,21 +332,6 @@ function getEtablissements() {
         $res->free_result();
     }
     return $etabs;
-}
-
-function getTypesEtablissements() {
-    global $conn;
-    $types = [];
-    $sql = "SELECT distinct(type) as t FROM etablissements order by t asc";
-
-    if ($res = $conn->query($sql)) {
-        while ($row = $res->fetch_array()) {
-            $types[] = $row['t'];
-        }
-
-        $res->free_result();
-    }
-    return $types;
 }
 
 function lineRatio($total, $nb) {
