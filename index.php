@@ -276,6 +276,7 @@ if (isset($_REQUEST["top"])) {
                     }),
                     complete: function(data){
                         $('#topContent').html(data.responseText);
+                        console.log(data.responseText);
                         $('#topModal').modal('show');
                     }
                 });

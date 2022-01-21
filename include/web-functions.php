@@ -76,40 +76,62 @@ function displayTable($etabId) {
 // TODO: revoir cette partie encore
 function getTopHTML($serviceId) {
     global $conn;
-    $etabs = array();
-    $html = "<table id='top20Desc' class='topResult'>";
-    $html .= "<tr><td>Etablissement</td><td>Total</td><td>Elèves</td><td>Enseignants</td><td>Autres</td></tr>";
-
-    $sql = "SELECT s.`id_lycee`, e.nom, SUM(s.total_visites) as total, nb_visiteurs, ceil(avg(eleve)) as eleve, ceil(avg(enseignant)) as enseignant, ceil(avg(parent)) as parent, ceil(avg(personnel_etablissement_non_enseignant)) as personnel_etablissement_non_enseignant, ceil(avg(personnel_collectivite)) as personnel_collectivite, se.total_eleve, se.total_enseignant, se.total_personnel_etablissement_non_enseignant, se.total_personnel_collectivite FROM `stats` as s , etablissements as e, stats_etab as se WHERE s.id_lycee = e.id and s.id_lycee = se.id_lycee and s.id_service = " . $conn->real_escape_string($serviceId) . "  group by id_lycee order by total desc limit 20";
-
+    $etabs = [];
     $stats = [];
-    if ($res = $conn->query($sql)) {
-        if ($row = $res->fetch_array()) {
-            $stats = array_merge($stats, $row);
-        }
-        $res->free_result();
-    }
+    $html = '<table id="top20Desc" class="topResult">';
+    $html .= "<tr><td>Établissement</td><td>Total</td><td>Élèves</td><td>Enseignants</td><td>Autres</td></tr>";
+    $intServiceId = intval($serviceId);
+
+    $sql =
+        "SELECT
+            e.id,
+            e.nom,
+            SUM(s.total_sessions) as total,
+            s.differents_users,
+            CEIL(AVG(s.eleve__differents_users)) as eleve,
+            CEIL(AVG(s.enseignant__differents_users)) as enseignant,
+            CEIL(AVG(s.perso_etab_non_ens__differents_users)) as perso_etab_non_ens,
+            CEIL(AVG(s.perso_collec__differents_users)) as perso_collec,
+            se.eleve__total_pers_actives,
+            se.enseignant__total_pers_actives,
+            se.perso_etab_non_ens__total_pers_actives,
+            se.perso_collec__total_pers_actives
+        FROM etablissements as e
+        INNER JOIN stats_services as s ON e.id = s.id_lycee
+        INNER JOIN stats_etabs as se ON e.id = se.id_lycee
+        WHERE s.id_service = {$intServiceId}
+        GROUP BY e.id
+        ORDER BY total desc
+        LIMIT 20";
 
     if ($res = $conn->query($sql)) {
         while ($row = $res->fetch_array()) {
+            $eleves = 0;
+            $enseignants = 0;
+            $autres = 0;
+            $total_eleves = intval($row['eleve__total_pers_actives']);
+            $total_enseignants = intval($row['enseignant__total_pers_actives']);
+            $total_autres = intval($row['perso_etab_non_ens__total_pers_actives']) + intval($row['perso_collec__total_pers_actives']);
 
-            $eleves = round($row['eleve'] / $row['total_eleve'] * 100, 0);
-            if (is_nan($eleves)) $eleves = 0;
+            if ($total_eleves !== 0) {
+                $eleves = "".round(intval($row['eleve']) / $total_eleves * 100, 2)."%";
+            }
 
-            $enseignants = round($row['enseignant'] / $row['total_enseignant'] * 100, 0);
-            if (is_nan($enseignants)) $enseignants = 0;
+            if ($total_enseignants !== 0) {
+                $enseignants = "".round(intval($row['enseignant']) / $total_enseignants * 100, 2)."%";
+            }
 
-            $autres = round(($row['personnel_etablissement_non_enseignant'] + $row['personnel_collectivite']) / ($row['total_personnel_etablissement_non_enseignant'] + $row['total_personnel_collectivite']) * 100, 0);
-            if (is_nan($autres)) $autres = 0;
+            if ($total_autres !== 0) {
+                $autres = "".round((intval($row['personnel_etablissement_non_enseignant']) + intval($row['personnel_collectivite'])) / $total_autres * 100, 2)."%";
+            }
 
-            $html .= "<tr><td>" . $row['nom'] . "</td><td>" . $row['total'] . "</td><td>" . $eleves . "%</td><td>" . $enseignants . "%</td><td>" . $autres . "%</td></tr>";
-
+            $html .= "<tr><td>{$row['nom']}</td><td>{$row['total']}</td><td>{$eleves}</td><td>{$enseignants}</td><td>{$autres}</td></tr>";
         }
+
         $res->free_result();
     }
-    $html .= "</table>";
 
-    return $html;
+    return $html."</table>";
 }
 
 function get_etablissement_id_by_siren($siren) {
@@ -298,7 +320,7 @@ function getStats($etab) {
 
 function getEtablissements() {
     global $conn, $etabType;
-    $etabs = array();
+    $etabs = [];
     $where = "";
 
     if ($etabType != '-1' && !empty($etabType)) {
@@ -324,7 +346,7 @@ function getEtablissements() {
 
 function getTypesEtablissements() {
     global $conn;
-    $types = array();
+    $types = [];
     $sql = "SELECT distinct(type) as t FROM etablissements order by t asc";
 
     if ($res = $conn->query($sql)) {
@@ -344,7 +366,7 @@ function lineRatio($total, $nb) {
 
 function getListMois() {
     global $conn;
-    $list = array();
+    $list = [];
     if ($res = $conn->query("SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY m ASC")) {
         while ($row = $res->fetch_array()) {
             $list[] = $row['m'];
