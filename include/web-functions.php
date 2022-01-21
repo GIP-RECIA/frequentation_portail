@@ -20,13 +20,11 @@ function getAnnuaireParam() {
     ];
 }
 
-function nice($data)
-{
+function nice($data) {
     echo "<pre>" . print_r($data, true) . "</pre>";
 }
 
-function displayTable($etabId)
-{
+function displayTable($etabId) {
     global $resultType;
 
     $html = '<div class="table-responsive"><table id="result" class="table table-sm table-striped population">';
@@ -76,8 +74,7 @@ function displayTable($etabId)
 }
 
 // TODO: revoir cette partie encore
-function getTopHTML($serviceId)
-{
+function getTopHTML($serviceId) {
     global $conn;
     $etabs = array();
     $html = "<table id='top20Desc' class='topResult'>";
@@ -113,11 +110,9 @@ function getTopHTML($serviceId)
     $html .= "</table>";
 
     return $html;
-
 }
 
-function get_etablissement_id_by_siren($siren)
-{
+function get_etablissement_id_by_siren($siren) {
     global $conn;
     $sql = "SELECT * from etablissements where siren = '{$siren}'";
     $query = $conn->query($sql);
@@ -136,16 +131,10 @@ function get_etablissement_id_by_siren($siren)
  * @param $etabId
  */
 function getStatsHTML($etabId) {
-    global $etab, $etabType, $resultType, $mois, $listMois, $show_simple_data;
+    global $etab, $resultType, $show_simple_data;
 
     $serviceView = $resultType == 'services';
-    $countMois = count($listMois);
-    
-    if ($mois !== '-1') {
-        $countMois = 1;
-    }
-
-    $stats = getStats($etabId, $etabType);
+    $stats = getStats($etabId);
     $statsServices = $stats['statsServices'];
     $statsEtabs = $stats['statsEtabs'];
     $html = '';
@@ -163,12 +152,6 @@ function getStatsHTML($etabId) {
         $perso_etab_non_ens = intval($service['perso_etab_non_ens__differents_users']);
         $perso_collec = intval($service['perso_collec__differents_users']);
         $tuteur_stage = intval($service['tuteur_stage__differents_users']);
-        $avgParent = intval($parent/$countMois);
-        $avgEleve = intval($eleve/$countMois);
-        $avgEnseignant = intval($enseignant/$countMois);
-        $avgPerso_etab_non_ens = intval($perso_etab_non_ens/$countMois);
-        $avgPerso_collec = intval($perso_collec/$countMois);
-        $avgTuteur_stage = intval($tuteur_stage/$countMois);
         $total_parent = intval($statsEtab['parent__total_pers_actives']);
         $total_eleve = intval($statsEtab['eleve__total_pers_actives']);
         $total_enseignant = intval($statsEtab['enseignant__total_pers_actives']);
@@ -177,7 +160,7 @@ function getStatsHTML($etabId) {
         $total_tuteur_stage = intval($statsEtab['tuteur_stage__total_pers_actives']);
         $top = "";
 
-        if ($serviceView) {
+        if ($serviceView && !$show_simple_data) {
             $top = "<span class=\"top20\" data-serviceid=\"{$service['id']}\" class=\"float-right\">TOP</span>";
         }
 
@@ -196,12 +179,12 @@ function getStatsHTML($etabId) {
         $html .= "<td class=\"population-elem\">{$perso_collec}</td>";
         $html .= "<td class=\"population-elem\">{$tuteur_stage}</td>";
 
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_parent, $avgParent)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_eleve, $avgEleve)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_enseignant, $avgEnseignant)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_perso_etab_non_ens, $avgPerso_etab_non_ens)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_perso_collec, $avgPerso_collec)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_tuteur_stage, $avgTuteur_stage)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_parent, $parent)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_eleve, $eleve)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_enseignant, $enseignant)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_perso_etab_non_ens, $perso_etab_non_ens)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_perso_collec, $perso_collec)."</td>";
+        $html .= "<td class=\"ratio-elem\">".lineRatio($total_tuteur_stage, $tuteur_stage)."</td>";
 
         $html .= "</tr>";
     }
@@ -213,9 +196,8 @@ function getStatsHTML($etabId) {
  * Récupère les statistiques des différents services d'une établissement ou des différents établissement
  *
  * @param $etab     L'identifiant de l'établissement
- * @param $etabType
  */
-function getStats($etab, $etabType) {
+function getStats($etab) {
     global $conn, $resultType, $mois;
 
     $serviceView = $resultType == 'services';
@@ -224,6 +206,8 @@ function getStats($etab, $etabType) {
     $statsEtabs = [];
     $join = "";
     $from = "";
+    $select2 = "";
+    $groupBy2 = "";
 
     if ($etab !== '-1') {
         $where[] = "id_lycee = {$etab}";
@@ -248,6 +232,8 @@ function getStats($etab, $etabType) {
     } else {
         $join = "INNER JOIN etablissements as e ON e.id = s.id_lycee";
         $from = "FROM stats_etabs as s";
+        $select2 = "id_lycee as id,";
+        $groupBy2 = "GROUP BY id_lycee";
     }
 
     $sql =
@@ -281,7 +267,7 @@ function getStats($etab, $etabType) {
 
     $sql =
         "SELECT
-            id_lycee as id,
+            {$select2}
             SUM(parent__total_pers_actives) as parent__total_pers_actives,
             SUM(eleve__total_pers_actives) as eleve__total_pers_actives,
             SUM(enseignant__total_pers_actives) as enseignant__total_pers_actives,
@@ -290,7 +276,8 @@ function getStats($etab, $etabType) {
             SUM(tuteur_stage__total_pers_actives) as tuteur_stage__total_pers_actives
         FROM stats_etabs
         {$where}
-        GROUP BY id_lycee";
+        {$groupBy2}";
+
 
     if ($result = $conn->query($sql)) {
         if ($serviceView) {
@@ -309,8 +296,7 @@ function getStats($etab, $etabType) {
     return ['statsServices' => $statsServices, 'statsEtabs' => $statsEtabs];
 }
 
-function getEtablissements()
-{
+function getEtablissements() {
     global $conn, $etabType;
     $etabs = array();
     $where = "";
@@ -336,8 +322,7 @@ function getEtablissements()
     return $etabs;
 }
 
-function getTypesEtablissements()
-{
+function getTypesEtablissements() {
     global $conn;
     $types = array();
     $sql = "SELECT distinct(type) as t FROM etablissements order by t asc";
@@ -352,13 +337,12 @@ function getTypesEtablissements()
     return $types;
 }
 
-function lineRatio($total, $avg) {
-    return $total === 0 ? '0' : ''.round(($avg/$total)*100, 2)."%<br/>({$avg} / {$total})";
+function lineRatio($total, $nb) {
+    return $total === 0 ? '0' : ''.round(($nb/$total)*100, 2)."%<br/>({$nb} / {$total})";
 }
 
 
-function getListMois()
-{
+function getListMois() {
     global $conn;
     $list = array();
     if ($res = $conn->query("SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY m ASC")) {

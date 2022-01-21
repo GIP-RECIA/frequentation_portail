@@ -141,4 +141,6 @@ Les utilisateurs ayant le role **National_DIR** dans le champ **ENTPersonProfils
 * mois
 * sélecteur du type de vue
 
-L'affichage de statistiques se fera donc pour **Tous les mois** et non pour un mois précis.
+L'affichage de statistiques se fera donc pour **Tous les mois** et non pour un mois précis et sur la vue **services**.
+
+De plus l'affichage **TOP** sera masqué.

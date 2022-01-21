@@ -259,29 +259,29 @@ if (isset($_REQUEST["top"])) {
                 const ya = parseFloat(y.split("%")[0]);
                 return ((xa < ya) ? -1 : ((xa > ya) ? 1 : 0));
             };
-                
+
             jQuery.fn.dataTableExt.oSort["percent-desc"] = function(x,y) {
-                jQuery.fn.dataTableExt.oSort["percent-asc"](y, x);
+                return jQuery.fn.dataTableExt.oSort["percent-asc"](y, x);
             };
 
             const perType = { "sType": "percent" };
-            
+
             $('.top20').click (function () {
                 $.ajax({
                     url: "./index.php?top",
                     type: "POST",
-                    async: false, 
+                    async: false,
                     data: ({
                         serviceId: $(this).attr('data-serviceid'),
                     }),
                     complete: function(data){
                         $('#topContent').html(data.responseText);
-                        $('#topModal').modal('show'); 
+                        $('#topModal').modal('show');
                     }
                 });
             });
 
-            $('#result').DataTable({ 
+            $('#result').DataTable({
                 "paging": false,
                 "ordering": true,
                 dom: 'Bfrtip',
@@ -298,7 +298,7 @@ if (isset($_REQUEST["top"])) {
                                     }
                                 }
                             }
-                        }    
+                        }
                     }
                 ],
                 "aoColumns": [
