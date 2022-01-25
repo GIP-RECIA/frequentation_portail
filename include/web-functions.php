@@ -317,6 +317,29 @@ function getStats($etab) {
     return ['statsServices' => $statsServices, 'statsEtabs' => $statsEtabs];
 }
 
+/**
+ * Retourne la liste des types d'établissement
+ */
+function getTypesEtablissements()
+{
+    global $conn;
+    $types = array();
+    $sql = "SELECT distinct(type) as t FROM etablissements order by t asc";
+
+    if ($res = $conn->query($sql)) {
+        while ($row = $res->fetch_array()) {
+            $types[] = $row['t'];
+        }
+
+        $res->free_result();
+    }
+
+    return $types;
+}
+
+/**
+ * Retourne la liste des établissements
+ */
 function getEtablissements() {
     global $conn;
     $etabs = [];
@@ -331,6 +354,7 @@ function getEtablissements() {
 
         $res->free_result();
     }
+
     return $etabs;
 }
 

@@ -52,14 +52,28 @@ if (!empty($etablissement)) {
 $mois = "-1";
 $etab = "-1";
 $resultType = "services";
+$etabType = [];
 
 $listMois = getListMois();
 
 if (isset($_REQUEST)) {
     foreach ($_REQUEST as $key => $item) {
-        $_REQUEST[$key] = mysqli_real_escape_string($conn, $item);
+        if ($key === "etabType") {
+            $elems = [];
+
+            foreach ($item as $keyElem => $elem) {
+                $elems[$keyElem] = mysqli_real_escape_string($conn, $elem);
+            }
+
+            $_REQUEST[$key] = $elems;
+        } else {
+            $_REQUEST[$key] = mysqli_real_escape_string($conn, $item);
+        }
     }
 }
+
+if (isset($_REQUEST["etabType"]))
+    $etabType = $_REQUEST["etabType"];
 
 //$resultType = "etabs";
 if (isset($_REQUEST["etab"]))
@@ -141,6 +155,20 @@ if (isset($_REQUEST["top"])) {
                     <form id="filters" action="" method="post" class="form-inline">
                         <div class="form-group mr-2 mb-3">
                             <label>Voir les résultats pour :</label>
+                        </div>
+                        <div class="form-group mr-2 mb-3">
+                            <label for="etabType" class="sr-only">catégorie</label>
+                            <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple"
+                                    multiple="multiple" style="width:300px;">
+                                <?php
+
+                                $types = getTypesEtablissements();
+                                foreach ($types as $name) {
+                                    echo "<option value=\"" . $name . "\"" . ((in_array($name, $etabType)) ? " selected " : "") . ">" . $name . "</option>";
+                                }
+
+                                ?>
+                            </select>
                         </div>
                         <div class="form-group mr-2 mb-3">
                             <label for="etab" class="sr-only">établissement</label>
@@ -297,6 +325,7 @@ if (isset($_REQUEST["top"])) {
             });
 
             $('#reset').click (function () {
+                $('#etabType').val(null);
                 $('#etab').val(-1);
                 $('#mois').val(-1);
                 $(location).attr('href','/');
