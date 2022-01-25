@@ -91,7 +91,7 @@ if (isset($_REQUEST["resultId"])) {
 }
 
 if (isset($_REQUEST["top"])) {
-    echo getTopHTML($_REQUEST["serviceId"]);
+    echo getTopHTML($_REQUEST["serviceId"], $mois);
     die;
 }
 
@@ -287,6 +287,7 @@ if (isset($_REQUEST["top"])) {
                     async: false,
                     data: ({
                         serviceId: $(this).attr('data-serviceid'),
+                        mois: $('#mois').val()
                     }),
                     complete: function(data){
                         $('#topContent').html(data.responseText);

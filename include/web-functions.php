@@ -73,13 +73,18 @@ function displayTable($etabId) {
     return $html;
 }
 
-function getTopHTML($serviceId) {
+function getTopHTML($serviceId, $month) {
     global $conn;
     $etabs = [];
     $stats = [];
     $html = '<table id="top20Desc" class="topResult">';
     $html .= "<tr><td>Établissement</td><td>Total</td><td>Élèves</td><td>Enseignants</td><td>Autres</td></tr>";
     $intServiceId = intval($serviceId);
+    $where = "";
+
+    if ($month !== "-1") {
+        $where = generateWhereMonth($month).",";
+    }
 
     $sql =
         "SELECT
@@ -91,14 +96,16 @@ function getTopHTML($serviceId) {
             CEIL(AVG(s.enseignant__differents_users)) as enseignant,
             CEIL(AVG(s.perso_etab_non_ens__differents_users)) as perso_etab_non_ens,
             CEIL(AVG(s.perso_collec__differents_users)) as perso_collec,
-            se.eleve__total_pers_actives,
-            se.enseignant__total_pers_actives,
-            se.perso_etab_non_ens__total_pers_actives,
-            se.perso_collec__total_pers_actives
+            se.eleve__differents_users,
+            se.enseignant__differents_users,
+            se.perso_etab_non_ens__differents_users,
+            se.perso_collec__differents_users
         FROM etablissements as e
         INNER JOIN stats_services as s ON e.id = s.id_lycee
         INNER JOIN stats_etabs as se ON e.id = se.id_lycee
-        WHERE s.id_service = {$intServiceId}
+        WHERE
+            {$where}
+            s.id_service = {$intServiceId}
         GROUP BY e.id
         ORDER BY total desc
         LIMIT 20";
@@ -108,9 +115,9 @@ function getTopHTML($serviceId) {
             $eleves = 0;
             $enseignants = 0;
             $autres = 0;
-            $total_eleves = intval($row['eleve__total_pers_actives']);
-            $total_enseignants = intval($row['enseignant__total_pers_actives']);
-            $total_autres = intval($row['perso_etab_non_ens__total_pers_actives']) + intval($row['perso_collec__total_pers_actives']);
+            $total_eleves = intval($row['eleve__differents_users']);
+            $total_enseignants = intval($row['enseignant__differents_users']);
+            $total_autres = intval($row['perso_etab_non_ens__differents_users']) + intval($row['perso_collec__differents_users']);
 
             if ($total_eleves !== 0) {
                 $eleves = "".round(intval($row['eleve']) / $total_eleves * 100, 2)."%";
@@ -358,8 +365,29 @@ function getEtablissements() {
     return $etabs;
 }
 
+/**
+ * Écrit une ligne de ratio dans le tableau
+ * 
+ * @param $nb    Le nombre d'utilisateur
+ * @param $total Le total d'utilisateurs
+ */
 function lineRatio($total, $nb) {
     return $total === 0 ? '0' : ''.round(($nb/$total)*100, 2)."%<br/>({$nb} / {$total})";
+}
+
+/**
+ * Génère la clause where pour la sélection du mois
+ *
+ * @param $month string Le mois et l'année sous forme de chaîne de caractères
+ */
+function generateWhereMonth($month) {
+    if ($month === "-1") {
+        return "";
+    }
+
+    $r = explode(' / ', $month);
+
+    return "mois = {$r[0]} and annee = {$r[1]} ";
 }
 
 
