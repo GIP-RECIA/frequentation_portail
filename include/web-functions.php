@@ -82,9 +82,9 @@ function getTopHTML($serviceId, $month) {
     $intServiceId = intval($serviceId);
     $where = "";
 
-    if ($month !== "-1") {
-        $where = generateWhereMonth($month).",";
-    }
+    /*if ($month !== "-1") {
+        $where = generateWhereMonth($month)." AND";
+    }*/
 
     $sql =
         "SELECT
@@ -408,7 +408,7 @@ function generateWhereType($etabTypes) {
         return "";
     }
 
-    return 'type IN ("'.implode('", "', $etabType).'")';
+    return 'type IN ("'.implode('", "', $etabTypes).'")';
 }
 
 /**
