@@ -156,6 +156,9 @@ if (isset($_REQUEST["top"])) {
                         <div class="form-group mr-2 mb-3">
                             <label>Voir les résultats pour :</label>
                         </div>
+                        <?php
+                        if (!$etabReadOnly) {
+                        ?>
                         <div class="form-group mr-2 mb-3">
                             <label for="etabType" class="sr-only">catégorie</label>
                             <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple"
@@ -170,6 +173,9 @@ if (isset($_REQUEST["top"])) {
                                 ?>
                             </select>
                         </div>
+                        <?php
+                        }
+                        ?>
                         <div class="form-group mr-2 mb-3">
                             <label for="etab" class="sr-only">établissement</label>
                             <select id="etab" name="etab" class="form-control">
