@@ -342,7 +342,7 @@ function lineRatio($total, $nb) {
 function getListMois() {
     global $conn;
     $list = [];
-    if ($res = $conn->query("SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY m ASC")) {
+    if ($res = $conn->query("SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY annee DESC, m DESC")) {
         while ($row = $res->fetch_array()) {
             $list[] = $row['m'];
         }
