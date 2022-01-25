@@ -226,7 +226,7 @@ function getStatsHTML($etabId) {
  * @param string $etab L'identifiant de l'établissement
  */
 function getStats($etab) {
-    global $conn, $resultType, $mois;
+    global $conn, $resultType, $mois, $etabType;
 
     $serviceView = $resultType == 'services';
     $where = [];
@@ -245,6 +245,7 @@ function getStats($etab) {
         $where[] = generateWhereMonth($mois);
     }
 
+    $where[] = generateWhereType($etabType, "%alias%");
     $where = implode(' AND ', $where);
 
     if ($where !== '') {
@@ -252,14 +253,21 @@ function getStats($etab) {
     }
 
     if ($serviceView) {
-        $join = "INNER JOIN services as e ON e.id = s.id_service";
+        $join = 
+            "INNER JOIN services as e ON e.id = s.id_service
+            INNER JOIN etablissements as etab ON etab.id = s.id_lycee";
         $from = "FROM stats_services as s";
+        $alias = "etab";
     } else {
         $join = "INNER JOIN etablissements as e ON e.id = s.id_lycee";
         $from = "FROM stats_etabs as s";
-        $select2 = "id_lycee as id,";
+        $alias = "e";
+        $select2 = "s.id_lycee as id,";
         $groupBy2 = "GROUP BY id_lycee";
     }
+
+    $where1 = str_replace("%alias%", $alias, $where);
+    $where2 = str_replace("%alias%", "etab", $where);
 
     $sql =
         "SELECT
@@ -277,10 +285,10 @@ function getStats($etab) {
             SUM(s.tuteur_stage__differents_users) as tuteur_stage__differents_users
         {$from}
         {$join}
-        {$where}
+        {$where1}
         GROUP BY e.id
         ORDER BY e.nom";
-
+//echo "<script>console.log('".$sql."')</script>";
 
     if ($result = $conn->query($sql)) {
         while ($row = $result->fetch_array(MYSQLI_ASSOC)) {
@@ -293,14 +301,15 @@ function getStats($etab) {
     $sql =
         "SELECT
             {$select2}
-            SUM(parent__differents_users) as parent__differents_users,
-            SUM(eleve__differents_users) as eleve__differents_users,
-            SUM(enseignant__differents_users) as enseignant__differents_users,
-            SUM(perso_etab_non_ens__differents_users) as perso_etab_non_ens__differents_users,
-            SUM(perso_collec__differents_users) as perso_collec__differents_users,
-            SUM(tuteur_stage__differents_users) as tuteur_stage__differents_users
-        FROM stats_etabs
-        {$where}
+            SUM(s.parent__differents_users) as parent__differents_users,
+            SUM(s.eleve__differents_users) as eleve__differents_users,
+            SUM(s.enseignant__differents_users) as enseignant__differents_users,
+            SUM(s.perso_etab_non_ens__differents_users) as perso_etab_non_ens__differents_users,
+            SUM(s.perso_collec__differents_users) as perso_collec__differents_users,
+            SUM(s.tuteur_stage__differents_users) as tuteur_stage__differents_users
+        FROM stats_etabs as s
+        INNER JOIN etablissements as etab ON etab.id = s.id_lycee
+        {$where2}
         {$groupBy2}";
 
 
@@ -400,15 +409,18 @@ function generateWhereMonth($month) {
  * Génère la clause where pour la sélection du type d'établissement
  *
  * @param string $etabTypes Les types d'établissement
+ * @param string $aliasTable L'alias de la table qui contient le type
  *
  * @return string la clause where
  */
-function generateWhereType($etabTypes) {
+function generateWhereType($etabTypes, $aliasTable = null) {
     if (count($etabTypes) === 0) {
-        return "";
+        return "1 = 1";
     }
 
-    return 'type IN ("'.implode('", "', $etabTypes).'")';
+    $aliasTable = $aliasTable === null ? "" : "${aliasTable}.";
+
+    return $aliasTable.'type IN ("'.implode('", "', $etabTypes).'")';
 }
 
 /**
