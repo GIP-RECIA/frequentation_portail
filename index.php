@@ -181,7 +181,7 @@ if (isset($_REQUEST["top"])) {
                             <select id="etab" name="etab" class="form-control">
                                 <?php
 
-                                $etabs = getEtablissements();
+                                $etabs = getEtablissements($etabType);
 
                                 if (!$etabReadOnly) {
                                     echo '<option value="-1">Tous les établissements</option>';

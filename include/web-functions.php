@@ -156,7 +156,7 @@ function get_etablissement_id_by_siren($siren) {
 /**
  * Retourne le code html du tableau de la liste des services/établissements
  *
- * @param $etabId
+ * @param string $etabId
  */
 function getStatsHTML($etabId) {
     global $etab, $resultType, $show_simple_data;
@@ -223,7 +223,7 @@ function getStatsHTML($etabId) {
 /**
  * Récupère les statistiques des différents services d'une établissement ou des différents établissement
  *
- * @param $etab     L'identifiant de l'établissement
+ * @param string $etab L'identifiant de l'établissement
  */
 function getStats($etab) {
     global $conn, $resultType, $mois;
@@ -242,10 +242,7 @@ function getStats($etab) {
     }
 
     if ($mois !== '-1') {
-        $r = explode(' / ', $mois);
-        $m = $r[0];
-        $a = $r[1];
-        $where[] = "mois = " . $m . " and annee = " . $a . " ";
+        $where[] = generateWhereMonth($mois);
     }
 
     $where = implode(' AND ', $where);
@@ -326,6 +323,8 @@ function getStats($etab) {
 
 /**
  * Retourne la liste des types d'établissement
+ *
+ * @return array<string> Un tableau de types d'établissements
  */
 function getTypesEtablissements()
 {
@@ -345,13 +344,16 @@ function getTypesEtablissements()
 }
 
 /**
- * Retourne la liste des établissements
+ * Retourne la liste des établissements en fonction du/des types d'établissement si ils sont présents
+ *
+ * @param array<string> $etabTypes Les types d'établissement à retourner
+ *
+ * @return array<string, string> Un tableau d'établissements
  */
-function getEtablissements() {
+function getEtablissements($etabTypes) {
     global $conn;
     $etabs = [];
-    $where = "";
-
+    $where = count($etabTypes) === 0 ? "" : "WHERE ".generateWhereType($etabTypes);
     $sql = "SELECT * FROM etablissements {$where}";
 
     if ($res = $conn->query($sql)) {
@@ -368,8 +370,10 @@ function getEtablissements() {
 /**
  * Écrit une ligne de ratio dans le tableau
  * 
- * @param $nb    Le nombre d'utilisateur
- * @param $total Le total d'utilisateurs
+ * @param int $nb    Le nombre d'utilisateur
+ * @param int $total Le total d'utilisateurs
+ *
+ * @return string La ligne de ration pour le tableau
  */
 function lineRatio($total, $nb) {
     return $total === 0 ? '0' : ''.round(($nb/$total)*100, 2)."%<br/>({$nb} / {$total})";
@@ -378,7 +382,9 @@ function lineRatio($total, $nb) {
 /**
  * Génère la clause where pour la sélection du mois
  *
- * @param $month string Le mois et l'année sous forme de chaîne de caractères
+ * @param string $month Le mois et l'année sous forme de chaîne de caractères
+ *
+ * @return string la clause where
  */
 function generateWhereMonth($month) {
     if ($month === "-1") {
@@ -390,7 +396,26 @@ function generateWhereMonth($month) {
     return "mois = {$r[0]} and annee = {$r[1]} ";
 }
 
+/**
+ * Génère la clause where pour la sélection du type d'établissement
+ *
+ * @param string $etabTypes Les types d'établissement
+ *
+ * @return string la clause where
+ */
+function generateWhereType($etabTypes) {
+    if (count($etabTypes) === 0) {
+        return "";
+    }
 
+    return 'type IN ("'.implode('", "', $etabType).'")';
+}
+
+/**
+ * Génère la liste des mois ordonnées et bien formaté
+ *
+ * @return array<string> La liste des mois
+ */
 function getListMois() {
     global $conn;
     $list = [];
