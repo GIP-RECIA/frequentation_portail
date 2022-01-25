@@ -173,12 +173,12 @@ function getStatsHTML($etabId) {
         $perso_etab_non_ens = intval($service['perso_etab_non_ens__differents_users']);
         $perso_collec = intval($service['perso_collec__differents_users']);
         $tuteur_stage = intval($service['tuteur_stage__differents_users']);
-        $total_parent = intval($statsEtab['parent__total_pers_actives']);
-        $total_eleve = intval($statsEtab['eleve__total_pers_actives']);
-        $total_enseignant = intval($statsEtab['enseignant__total_pers_actives']);
-        $total_perso_etab_non_ens = intval($statsEtab['perso_etab_non_ens__total_pers_actives']);
-        $total_perso_collec = intval($statsEtab['perso_collec__total_pers_actives']);
-        $total_tuteur_stage = intval($statsEtab['tuteur_stage__total_pers_actives']);
+        $total_parent = intval($statsEtab['parent__differents_users']);
+        $total_eleve = intval($statsEtab['eleve__differents_users']);
+        $total_enseignant = intval($statsEtab['enseignant__differents_users']);
+        $total_perso_etab_non_ens = intval($statsEtab['perso_etab_non_ens__differents_users']);
+        $total_perso_collec = intval($statsEtab['perso_collec__differents_users']);
+        $total_tuteur_stage = intval($statsEtab['tuteur_stage__differents_users']);
         $top = "";
 
         if ($serviceView && !$show_simple_data) {
@@ -289,12 +289,12 @@ function getStats($etab) {
     $sql =
         "SELECT
             {$select2}
-            SUM(parent__total_pers_actives) as parent__total_pers_actives,
-            SUM(eleve__total_pers_actives) as eleve__total_pers_actives,
-            SUM(enseignant__total_pers_actives) as enseignant__total_pers_actives,
-            SUM(perso_etab_non_ens__total_pers_actives) as perso_etab_non_ens__total_pers_actives,
-            SUM(perso_collec__total_pers_actives) as perso_collec__total_pers_actives,
-            SUM(tuteur_stage__total_pers_actives) as tuteur_stage__total_pers_actives
+            SUM(parent__differents_users) as parent__differents_users,
+            SUM(eleve__differents_users) as eleve__differents_users,
+            SUM(enseignant__differents_users) as enseignant__differents_users,
+            SUM(perso_etab_non_ens__differents_users) as perso_etab_non_ens__differents_users,
+            SUM(perso_collec__differents_users) as perso_collec__differents_users,
+            SUM(tuteur_stage__differents_users) as tuteur_stage__differents_users
         FROM stats_etabs
         {$where}
         {$groupBy2}";
