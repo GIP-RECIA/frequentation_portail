@@ -1,69 +1,58 @@
 <?php
 
-$arrIdServiceFromName = [];
-
 /**
  * Import des données en bdd pour tous les établissements
  *
+ * @param Object $pdo    L'objet pdo
  * @param string $folder Le dossier des imports
  */
-function importDataEtabs($folder) {
-    global $conn;
-
-    loadServices();
+function importDataEtabs(Object &$pdo, string $folder) {
+    $arrIdServiceFromName = loadServices($pdo);
 
     $ex = explode("/", $folder);
     $length = (count($ex));
 
     if($length > 2) {
-        $year = $ex[$length -2];
-        $month = end($ex);
+        $annee = $ex[$length -2];
+        $mois = end($ex);
     } else {
-        $year = $ex[0];
-        $month = $ex[1];
+        $annee = $ex[0];
+        $mois = $ex[1];
     }
 
-    if(!is_numeric($year)) {
-        die("Erreur sur l'année récupérée ($year)");
+    if(!is_numeric($annee)) {
+        die("Erreur sur l'année récupérée ($annee)");
     }
 
-    if(!is_numeric($month)) {
-        die("Erreur sur le mois récupéré ($month)");
+    if(!is_numeric($mois)) {
+        die("Erreur sur le mois récupéré ($mois)");
     }
 
+    $annee = intval($annee);
+    $mois = intval($mois);
     $xml = simplexml_load_file($folder . '/liste_etablissements.xml');
     $etabs = $xml->xpath('/Etablissements/Etablissement');
-
-    $sql = "DELETE FROM stats_etabs WHERE annee = '{$year}' and mois = '{$month}'";
-    $res = mysqli_query($conn, $sql);
-    $sql = "DELETE FROM stats_services WHERE annee = '{$year}' and mois = '{$month}'";
-    $res = mysqli_query($conn, $sql);
+    $req = $pdo->prepare("DELETE FROM stats_etabs WHERE annee = :annee and mois = :mois");
+    $req->execute(['annee' => $annee, 'mois' => $mois]);
+    $req = $pdo->prepare("DELETE FROM stats_services WHERE annee = :annee and mois = :mois");
+    $req->execute(['annee' => $annee, 'mois' => $mois]);
     $arrEtabs = [];
+    $reqEtabBySiren = $pdo->prepare("SELECT id FROM etablissements WHERE siren = :siren");
+    $reqUpdateEtab = $pdo->prepare("UPDATE etablissements SET nom = :name, departement = :departement, type = :type WHERE id = :id");
+    $reqInsertEtab = $pdo->prepare("INSERT INTO etablissements (nom, departement, siren, type) VALUES (:name, :departement, :siren, :type)");
 
     foreach ($etabs as $etab) {
+        $etab = current($etab->attributes());
         $id = null;
-        $sql = "SELECT COUNT(siren) FROM etablissements WHERE siren = '{$etab['siren']}'";
-        $res = mysqli_query($conn, $sql);
+        $reqEtabBySiren->execute(['siren' => $etab['siren']]);
 
         // Si l'établissement existe déjà, on le met à jour, sinon on l'insert
-        if (mysqli_fetch_array($res)[0] > 0) {
-            $sql = "UPDATE etablissements SET nom = '{$etab['name']}', departement = '{$etab['departement']}', type = '{$etab['type']}' WHERE siren = '{$etab['siren']}'";
-            $conn->query($sql);
-
-            $sql = "SELECT id FROM etablissements WHERE siren = '{$etab['siren']}'";
-            $id = null;
-
-            if ($res = mysqli_query($conn, $sql)) {
-                if ($row = mysqli_fetch_array($res)) {
-                    $id = $row[0];
-                }
-            }
-
-            mysqli_free_result($res);
+        if ($row = $reqEtabBySiren->fetch()) {
+            $id = $row['id'];
+            $reqUpdateEtab->execute(array_merge(array_diff_key($etab, ['siren' => null]), ['id' => $id]));
         } else {
-            $sql = "INSERT INTO etablissements (nom, departement, siren, type) VALUES ('{$etab['name']}', '{$etab['departement']}', '{$etab['siren']}', '{$etab['type']}')";
-            $conn->query($sql);
-            $id = $conn->insert_id;
+            $reqInsertEtab->execute($etab);
+            $id = $pdo->lastInsertId();
         }
 
         if($id === null) {
@@ -96,9 +85,9 @@ function importDataEtabs($folder) {
         ?, ?, ?, ?,
         ?, ?, ?, ?
     )";
-    $stmtService = $conn->prepare($sql);
+    $reqInsertService = $pdo->prepare($sql);
 
-    if ($stmtService === false) {
+    if ($reqInsertService === false) {
         die("Erreur lors de la préparation de la requête sur le service");
     }
 
@@ -127,35 +116,33 @@ function importDataEtabs($folder) {
         ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?
     )";
-    $stmtEtab = $conn->prepare($sql);
+    $reqInsertEtab = $pdo->prepare($sql);
 
-    if ($stmtEtab === false) {
+    if ($reqInsertEtab === false) {
         die("Erreur lors de la préparation de la requête sur l'établissement");
     }
 
     foreach ($arrEtabs as $etab) {
         if (file_exists("{$folder}/mois_{$etab['siren']}.xml")) {
             vlog("Etablissement {$etab['name']}");
-            importDataEtab($etab, "{$folder}/mois_{$etab['siren']}.xml", $month, $year, $stmtService, $stmtEtab);
+            importDataEtab($pdo, $arrIdServiceFromName, $etab, "{$folder}/mois_{$etab['siren']}.xml", $mois, $annee, $reqInsertService, $reqInsertEtab);
         }
     }
-
-    $stmtService->close();
-    $stmtEtab->close();
 }
 
 /**
  * Import des données en bdd pour un établissement
  *
- * @param array $etab L'établissement
- * @param string $f Le nom du fichier correspondant à l'établissement
- * @param string $month Le mois
- * @param string $year L'année
- * @param object $stmtService Une requête d'insertion préparée pour les donnée d'un service
- * @param object $stmtEtab Une requête d'insertion préparée pour les donnée de profils globaux
+ * @param Object $pdo                  L'objet pdo
+ * @param array  $arrIdServiceFromName Le cache de relation name => id
+ * @param array  $etab                 L'établissement
+ * @param string $f                    Le nom du fichier correspondant à l'établissement
+ * @param string $mois                 Le mois
+ * @param string $annee                L'année
+ * @param Object $reqInsertService          Une requête d'insertion préparée pour les donnée d'un service
+ * @param Object $reqInsertEtab             Une requête d'insertion préparée pour les donnée de profils globaux
  */
-function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtEtab) {
-    global $conn;
+function importDataEtab(Object &$pdo, array &$arrIdServiceFromName, $etab, $f, $mois, $annee, &$reqInsertService, &$reqInsertEtab) {
     $xml = simplexml_load_file($f);
     $profils = $xml->xpath('/Etablissement/ProfilsGlobaux/ProfilGlobal');
     $users = [];
@@ -165,8 +152,7 @@ function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtEtab) {
     }
 
     $etablissement = $xml->xpath('/Etablissement')[0];
-    $stmtEtab->bind_param("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
-        $month, $year, $etab['id'],
+    $reqInsertEtab->execute([$mois, $annee, $etab['id'],
         $users['Parent']->TotalPersActives, $users['Parent']->AuPlus4Fois, $users['Parent']->AuMoins5Fois,
             $users['Parent']->TotalSessions, $users['Parent']->DifferentsUsers, $users['Parent']->TpsMoyenMinutes,
         $users['Elève']->TotalPersActives, $users['Elève']->AuPlus4Fois, $users['Elève']->AuMoins5Fois,
@@ -181,14 +167,12 @@ function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtEtab) {
             $users['Tuteur de stage']->TotalSessions, $users['Tuteur de stage']->DifferentsUsers, $users['Tuteur de stage']->TpsMoyenMinutes,
         $etablissement->TotalPersActives, $etablissement->AuPlus4Fois, $etablissement->AuMoins5Fois,
             $etablissement->TotalSessions, $etablissement->DifferentsUsers, $etablissement->TpsMoyenMinutes
-        );
-    $stmtEtab->execute();
-    //echo "ajout d'une ligne stats_services pour un profil global";
+    ]);
 
     $services = $xml->xpath('/Etablissement/Services/Service');
 
     foreach ($services as $service) {
-        $idService = getIdServiceFromName($service['name']);
+        $idService = getIdServiceFromName($pdo, $arrIdServiceFromName, $service['name']);
         $users = [];
         $profils = $service->xpath('Profils/Profil');
 
@@ -197,7 +181,7 @@ function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtEtab) {
             $users[(string)$profil['name']] = $profil;
         }
 
-        $stmtService->bind_param("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii", $month, $year, $etab['id'], $idService,
+        $reqInsertService->execute([$mois, $annee, $etab['id'], $idService,
             $users['Parent']->AuPlus4Fois, $users['Parent']->AuMoins5Fois,
                 $users['Parent']->TotalSessions, $users['Parent']->DifferentsUsers,
             $users['Elève']->AuPlus4Fois, $users['Elève']->AuMoins5Fois,
@@ -211,48 +195,71 @@ function importDataEtab($etab, $f, $month, $year, $stmtService, $stmtEtab) {
             $users['Tuteur de stage']->AuPlus4Fois, $users['Tuteur de stage']->AuMoins5Fois,
                 $users['Tuteur de stage']->TotalSessions, $users['Tuteur de stage']->DifferentsUsers,
             $service->AuPlus4Fois, $service->AuMoins5Fois, $service->TotalSessions, $service->DifferentsUsers
-        );
-        $stmtService->execute();
+        ]);
     }
 }
 
-function loadServices() {
-    global $conn, $arrIdServiceFromName;
+/**
+ * Génère la liste de tous les services
+ *
+ * @param Object $pdo L'objet pdo
+ *
+ * @param array La liste de tous les services
+ */
+function loadServices(Object &$pdo) {
+    $req = $pdo->prepare("SELECT id, nom FROM services WHERE");
+    $req->execute();
     $arrIdServiceFromName = [];
 
-    if ($res = mysqli_query($conn, "SELECT id, nom FROM services WHERE")) {
-        while ($row = mysqli_fetch_array($res)) {
-            $arrIdServiceFromName[$row['nom']] = $row['id'];
-        }
-        mysqli_free_result($res);
+    while ($row = $req->fetch()) {
+        $arrIdServiceFromName[$row['nom']] = intval($row['id']);
     }
+
+    return $arrIdServiceFromName;
 }
 
-function getIdServiceFromName($serviceName) {
-    global $conn, $arrIdServiceFromName;
+/**
+ * Récupère l'identifiant d'un service a partir de son nom
+ *
+ * @param Object $pdo                  L'objet pdo
+ * @param array  $arrIdServiceFromName Le cache de relation name => id
+ *
+ * @return int L'identifiant du service
+ */
+function getIdServiceFromName(Object &$pdo, array &$arrIdServiceFromName, $serviceName) {
     $serviceName = addslashes($serviceName);
 
     if (array_key_exists($serviceName, $arrIdServiceFromName)) {
         return $arrIdServiceFromName[$serviceName];
     }
 
-    $result = mysqli_query($conn, "SELECT id FROM services WHERE nom = '{$serviceName}'");
-    $row = mysqli_fetch_assoc($result);
+    $req = $pdo->prepare("SELECT id FROM services WHERE nom = :nom");
+    $req->execute(['nom' => $serviceName]);
+
+    if ($row = $req->fetch()) {
+        $idService = $row['id'];
+    } else {
+
+    }
 
     if ($row) {
         $idService = $row['id'];
     } else {
-        $sql = "INSERT INTO services (nom) VALUES ('{$serviceName}')";
-        $conn->query($sql);
-        $idService = $conn->insert_id;
+        $req = $pdo->prepare("INSERT INTO services (nom) VALUES (:nom)");
+        $req->execute(['nom' => $serviceName]);
+        $idService = $pdo->lastInsertId();
     }
 
-    mysqli_free_result($result);
-    $arrIdServiceFromName[$serviceName] = $idService;
+    $arrIdServiceFromName[$serviceName] = intval($idService);
 
     return $idService;
 }
 
-function vlog($s) {
+/**
+ * Affichage dans la console
+ *
+ * @param string $s Le message à afficher
+ */
+function vlog(string $s) {
     echo $s."\n";
 }
