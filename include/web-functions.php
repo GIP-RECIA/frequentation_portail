@@ -1,42 +1,20 @@
 <?php
-function getDbParam() {
-    $config = realpath('./config.ini');
-    $data = parse_ini_file($config, true)['db'];
-    return [
-        'user_db' => $data['user_db'],
-        'server' => $data['server'],
-        'user_pwd' => $data['user_pwd'],
-        'table_name' => $data['table_name'],
-    ];
-}
-function getAnnuaireParam() {
-    $config = realpath('./config.ini');
-    $data = parse_ini_file($config, true)['annuaire'];
-    return [
-        'host' => $data['host'],
-        'port' => $data['port'],
-        'context' => $data['context'],
-        'certificat' => $data['certificat'],
-    ];
-}
 
-function nice($data) {
-    echo "<pre>" . print_r($data, true) . "</pre>";
-}
-
-function displayTable($etabId) {
-    global $resultType;
-
+/**
+ * Affiche la table des résultats
+ *
+ * @param Object        $pdo            L'objet pdo
+ * @param string        $etabId         L'identifiant de l'établissement sélectionné ou "-1"
+ * @param string        $resultType     Le type de vue attendu, soit VIEW_SERVICES, soit VIEW_ETABS
+ * @param array<string> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, "-1" pour tous
+ * @param string        $mois           Le mois sur lequel on souhaite filtrer, "-1" pour tous
+ * @param bool          $showSimpleData Permet de savoir si il faut afficher les boutons top
+ *
+ * @return string Le code html du tableau
+ */
+function displayTable(Object &$pdo, string $etabId, string $resultType, array $etabType, string $mois, bool $showSimpleData) {
+    $resultLabel = $resultType === VIEW_SERVICES ? "Service" : "Établissement";
     $html = '<div class="table-responsive"><table id="result" class="table table-sm table-striped population">';
-
-    $resultLabel = "";
-
-    if ($resultType == 'services') {
-        $resultLabel = "Service";
-    } else {
-        $resultLabel = "Etablissement";
-    }
-
     $html .= '<thead class="thead-dark">';
     $html .= '<tr>';
     $html .= '<th></th>';
@@ -45,7 +23,7 @@ function displayTable($etabId) {
     $html .= '<th colspan="6" class="ratio-elem">Ratio par rapport aux utilisateurs potentiels</th>';
     $html .= '</tr>';
     $html .= '<tr>';
-    $html .= '<th>' . $resultLabel . '</th>';
+    $html .= "<th>${resultLabel}</th>";
     $html .= '<th>Au plus quatre fois</th>';
     $html .= '<th>Au moins cinq fois</th>';
     $html .= '<th>Nb. visiteurs</th>';
@@ -65,7 +43,7 @@ function displayTable($etabId) {
     $html .= '</tr>';
     $html .= '</thead>';
     $html .= '<tbody>';
-    $html .= getStatsHTML($etabId);
+    $html .= getStatsHTML($pdo, $etabId, $resultType, $etabType, $mois, $showSimpleData);
     $html .= '</tbody>';
     $html .= '</table>';
     $html .= '</div>';
@@ -73,8 +51,14 @@ function displayTable($etabId) {
     return $html;
 }
 
-function getTopHTML($serviceId, $month) {
-    global $conn;
+/**
+ * Génère la popup top
+ *
+ * @param Object $pdo       L'objet pdo
+ * @param string $serviceId L'identifiant du service
+ * @param string $mois      Le mois ou "-1" si tous les mois
+ */
+function getTopHTML(Object &$pdo, string $serviceId, string $mois) {
     $etabs = [];
     $stats = [];
     $html = '<table id="top20Desc" class="topResult">';
@@ -82,8 +66,8 @@ function getTopHTML($serviceId, $month) {
     $intServiceId = intval($serviceId);
     $where = "";
 
-    /*if ($month !== "-1") {
-        $where = generateWhereMonth($month)." AND";
+    /*if ($mois !== "-1") {
+        $where = generateWhereMonth($mois)." AND";
     }*/
 
     $sql =
@@ -105,64 +89,74 @@ function getTopHTML($serviceId, $month) {
         INNER JOIN stats_etabs as se ON e.id = se.id_lycee
         WHERE
             {$where}
-            s.id_service = {$intServiceId}
+            s.id_service = :id_service
         GROUP BY e.id
         ORDER BY total desc
         LIMIT 20";
+    $args = ['id_service' => $intServiceId];
+    $req = $pdo->prepare($sql);
+    $req->execute($args);
 
-    if ($res = $conn->query($sql)) {
-        while ($row = $res->fetch_array()) {
-            $eleves = 0;
-            $enseignants = 0;
-            $autres = 0;
-            $total_eleves = intval($row['eleve__differents_users']);
-            $total_enseignants = intval($row['enseignant__differents_users']);
-            $total_autres = intval($row['perso_etab_non_ens__differents_users']) + intval($row['perso_collec__differents_users']);
+    while ($row = $req->fetch()) {
+        $eleves = 0;
+        $enseignants = 0;
+        $autres = 0;
+        $total_eleves = intval($row['eleve__differents_users']);
+        $total_enseignants = intval($row['enseignant__differents_users']);
+        $total_autres = intval($row['perso_etab_non_ens__differents_users']) + intval($row['perso_collec__differents_users']);
 
-            if ($total_eleves !== 0) {
-                $eleves = "".round(intval($row['eleve']) / $total_eleves * 100, 2)."%";
-            }
-
-            if ($total_enseignants !== 0) {
-                $enseignants = "".round(intval($row['enseignant']) / $total_enseignants * 100, 2)."%";
-            }
-
-            if ($total_autres !== 0) {
-                $autres = "".round((intval($row['personnel_etablissement_non_enseignant']) + intval($row['personnel_collectivite'])) / $total_autres * 100, 2)."%";
-            }
-
-            $html .= "<tr><td>{$row['nom']}</td><td>{$row['total']}</td><td>{$eleves}</td><td>{$enseignants}</td><td>{$autres}</td></tr>";
+        if ($total_eleves !== 0) {
+            $eleves = "".round(intval($row['eleve']) / $total_eleves * 100, 2)."%";
         }
 
-        $res->free_result();
+        if ($total_enseignants !== 0) {
+            $enseignants = "".round(intval($row['enseignant']) / $total_enseignants * 100, 2)."%";
+        }
+
+        if ($total_autres !== 0) {
+            $autres = "".round((intval($row['perso_etab_non_ens']) + intval($row['perso_collec'])) / $total_autres * 100, 2)."%";
+        }
+
+        $html .= "<tr><td>{$row['nom']}</td><td>{$row['total']}</td><td>{$eleves}</td><td>{$enseignants}</td><td>{$autres}</td></tr>";
     }
 
     return $html."</table>";
 }
 
-function get_etablissement_id_by_siren($siren) {
-    global $conn;
-    $sql = "SELECT * from etablissements where siren = '{$siren}'";
-    $query = $conn->query($sql);
-    $result = $query->fetch_assoc();
+/**
+ * Récupère l'établissement a partir de son SIREN
+ *
+ * @param Object $pdo   L'objet pdo
+ * @param string $siren Le siren de l'établissement
+ *
+ * @param string L'id de l'établissement ou false si n on trouvé
+ */
+function get_etablissement_id_by_siren(Object &$pdo, string $siren) {
+    $req = $pdo->prepare("SELECT id from etablissements where siren = :siren");
+    $req->execute(["siren" => $siren]);
 
-    if (isset($result['id'])) {
-        return $result['id'];
+    if ($row = $req->fetch()) {
+        return $row['id'];
     }
 
     return false;
 }
 
 /**
- * Retourne le code html du tableau de la liste des services/établissements
+ * Retourne le code html des lignes du tableau de la liste des services/établissements
  *
- * @param string $etabId
+ * @param Object        $pdo            L'objet pdo
+ * @param string        $etabId         L'identifiant de l'établissement sélectionné ou "-1"
+ * @param string        $resultType     Le type de vue attendu, soit VIEW_SERVICES, soit VIEW_ETABS
+ * @param array<string> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, "-1" pour tous
+ * @param string        $mois           Le mois sur lequel on souhaite filtrer, "-1" pour tous
+ * @param bool          $showSimpleData Permet de savoir si il faut afficher les boutons top
+ *
+ * @return string Le code html des lignes du tableau
  */
-function getStatsHTML($etabId) {
-    global $etab, $resultType, $show_simple_data;
-
-    $serviceView = $resultType == 'services';
-    $stats = getStats($etabId);
+function getStatsHTML(Object &$pdo, string $etabId, string $resultType, array $etabType, string $mois, bool $showSimpleData) {
+    $serviceView = $resultType === VIEW_SERVICES;
+    $stats = getStats($pdo, $etabId, $resultType, $etabType, $mois);
     $statsServices = $stats['statsServices'];
     $statsEtabs = $stats['statsEtabs'];
     $html = '';
@@ -188,7 +182,7 @@ function getStatsHTML($etabId) {
         $total_tuteur_stage = intval($statsEtab['tuteur_stage__differents_users']);
         $top = "";
 
-        if ($serviceView && !$show_simple_data) {
+        if ($serviceView && !$showSimpleData) {
             $top = "<span class=\"top20\" data-serviceid=\"{$service['id']}\" class=\"float-right\">TOP</span>";
         }
 
@@ -223,12 +217,16 @@ function getStatsHTML($etabId) {
 /**
  * Récupère les statistiques des différents services d'une établissement ou des différents établissement
  *
- * @param string $etab L'identifiant de l'établissement
+ * @param Object        $pdo            L'objet pdo
+ * @param string        $etabId         L'identifiant de l'établissement sélectionné ou "-1"
+ * @param string        $resultType     Le type de vue attendu, soit VIEW_SERVICES, soit VIEW_ETABS
+ * @param array<string> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, "-1" pour tous
+ * @param string        $mois           Le mois sur lequel on souhaite filtrer, "-1" pour tous
+ *
+ * @return array Le tableau des résultats
  */
-function getStats($etab) {
-    global $conn, $resultType, $mois, $etabType;
-
-    $serviceView = $resultType == 'services';
+function getStats(Object &$pdo, string $etabId, string $resultType, array $etabType, string $mois) {
+    $serviceView = $resultType === VIEW_SERVICES;
     $where = [];
     $statsServices = [];
     $statsEtabs = [];
@@ -236,16 +234,27 @@ function getStats($etab) {
     $from = "";
     $select2 = "";
     $groupBy2 = "";
+    $args = [];
 
-    if ($etab !== '-1') {
-        $where[] = "id_lycee = {$etab}";
+    if ($etabId !== '-1') {
+        $where[] = "id_lycee = :id_lycee";
+        $args['id_lycee'] = $etabId;
     }
 
     if ($mois !== '-1') {
-        $where[] = generateWhereMonth($mois);
+        $r = explode(' / ', $mois);
+        $localMois = $r[0];
+        $localAnnee = $r[1];
+        $where[] = "mois = :mois and annee = :annee";
+        $args = array_merge($args, ['mois' => $localMois, 'annee' => $localAnnee]);
     }
 
-    $where[] = generateWhereType($etabType, "%alias%");
+    if (count($etabType) !== 0) {
+        $res = generateInClauseAndArgs("%alias%.type", $etabType);
+        $where[] = $res[0];
+        $args = array_merge($args, $res[1]);
+    }
+
     $where = implode(' AND ', $where);
 
     if ($where !== '') {
@@ -288,14 +297,12 @@ function getStats($etab) {
         {$where1}
         GROUP BY e.id
         ORDER BY e.nom";
-//echo "<script>console.log('".$sql."')</script>";
 
-    if ($result = $conn->query($sql)) {
-        while ($row = $result->fetch_array(MYSQLI_ASSOC)) {
-            $statsServices[] = $row;
-        }
+    $req = $pdo->prepare($sql);
+    $req->execute($args);
 
-        $result->free_result();
+    while ($row = $req->fetch()) {
+        $statsServices[] = $row;
     }
 
     $sql =
@@ -312,19 +319,16 @@ function getStats($etab) {
         {$where2}
         {$groupBy2}";
 
+    $req = $pdo->prepare($sql);
+    $req->execute($args);
 
-    if ($result = $conn->query($sql)) {
-        if ($serviceView) {
-            if ($row = $result->fetch_array(MYSQLI_ASSOC)) {
-                $statsEtabs = $row;
-            }
-        } else {
-            while ($row = $result->fetch_array(MYSQLI_ASSOC)) {
-                $statsEtabs[$row['id']] = $row;
-            }
+    if ($serviceView) {
+        $row = $req->fetch();
+        $statsEtabs = $row;
+    } else {
+        while ($row = $req->fetch()) {
+            $statsEtabs[$row['id']] = $row;
         }
-
-        $result->free_result();
     }
 
     return ['statsServices' => $statsServices, 'statsEtabs' => $statsEtabs];
@@ -333,20 +337,18 @@ function getStats($etab) {
 /**
  * Retourne la liste des types d'établissement
  *
+ * @param Object $pdo L'objet pdo
+ *
  * @return array<string> Un tableau de types d'établissements
  */
-function getTypesEtablissements()
+function getTypesEtablissements(Object &$pdo)
 {
-    global $conn;
-    $types = array();
-    $sql = "SELECT distinct(type) as t FROM etablissements order by t asc";
+    $req = $pdo->prepare("SELECT distinct(type) as t FROM etablissements order by t asc");
+    $req->execute();
+    $types = [];
 
-    if ($res = $conn->query($sql)) {
-        while ($row = $res->fetch_array()) {
-            $types[] = $row['t'];
-        }
-
-        $res->free_result();
+    while ($row = $req->fetch()) {
+        $types[] = $row['t'];
     }
 
     return $types;
@@ -355,22 +357,24 @@ function getTypesEtablissements()
 /**
  * Retourne la liste des établissements en fonction du/des types d'établissement si ils sont présents
  *
+ * @param Object $pdo L'objet pdo
  * @param array<string> $etabTypes Les types d'établissement à retourner
  *
  * @return array<string, string> Un tableau d'établissements
  */
-function getEtablissements($etabTypes) {
-    global $conn;
+function getEtablissements(Object &$pdo, array $etabTypes) {
     $etabs = [];
-    $where = count($etabTypes) === 0 ? "" : "WHERE ".generateWhereType($etabTypes);
-    $sql = "SELECT * FROM etablissements {$where}";
+    $where = "";
 
-    if ($res = $conn->query($sql)) {
-        while ($row = $res->fetch_array()) {
-            $etabs[$row['id']] = $row['nom'];
-        }
+    if (count($etabTypes) !== 0) {
+        $where = "WHERE ".generateInClause("type", $etabTypes);
+    }
+    
+    $req = $pdo->prepare("SELECT * FROM etablissements {$where}");
+    $req->execute($etabTypes);
 
-        $res->free_result();
+    while ($row = $req->fetch()) {
+        $etabs[$row['id']] = $row['nom'];
     }
 
     return $etabs;
@@ -384,59 +388,68 @@ function getEtablissements($etabTypes) {
  *
  * @return string La ligne de ration pour le tableau
  */
-function lineRatio($total, $nb) {
+function lineRatio(int $total, int $nb) {
     return $total === 0 ? '0' : ''.round(($nb/$total)*100, 2)."%<br/>({$nb} / {$total})";
-}
-
-/**
- * Génère la clause where pour la sélection du mois
- *
- * @param string $month Le mois et l'année sous forme de chaîne de caractères
- *
- * @return string la clause where
- */
-function generateWhereMonth($month) {
-    if ($month === "-1") {
-        return "";
-    }
-
-    $r = explode(' / ', $month);
-
-    return "mois = {$r[0]} and annee = {$r[1]} ";
-}
-
-/**
- * Génère la clause where pour la sélection du type d'établissement
- *
- * @param string $etabTypes Les types d'établissement
- * @param string $aliasTable L'alias de la table qui contient le type
- *
- * @return string la clause where
- */
-function generateWhereType($etabTypes, $aliasTable = null) {
-    if (count($etabTypes) === 0) {
-        return "1 = 1";
-    }
-
-    $aliasTable = $aliasTable === null ? "" : "${aliasTable}.";
-
-    return $aliasTable.'type IN ("'.implode('", "', $etabTypes).'")';
 }
 
 /**
  * Génère la liste des mois ordonnées et bien formaté
  *
+ * @param Object $pdo L'objet pdo
+ *
  * @return array<string> La liste des mois
  */
-function getListMois() {
-    global $conn;
+function getListMois(Object &$pdo) {
+    $req = $pdo->prepare("SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY annee DESC, m DESC");
+    $req->execute();
     $list = [];
-    if ($res = $conn->query("SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY annee DESC, m DESC")) {
-        while ($row = $res->fetch_array()) {
-            $list[] = $row['m'];
+
+    while ($row = $req->fetch()) {
+        $list[] = $row['m'];
+    }
+
+    return $list;
+}
+
+/**
+ * Génère une clause in pour une requête préparé
+ *
+ * @param string $field     Le nom du champ sur lequel se fait le in
+ * @param array  $arrayElem Le tableau des éléments du in
+ *
+ * @return string La clause in sous forme de string paramétré
+ */
+function generateInClause(string $field, array $arrayElem) {
+    return "{$field} IN (".str_repeat('?,', count($arrayElem) - 1) . "?)";
+}
+
+/**
+ * Génère une clause in pour une requête préparé
+ *
+ * @param string $field     Le nom du champ sur lequel se fait le in
+ * @param array  $arrayElem Le tableau des éléments du in
+ * @param string $prefix    Le prefix du paramètre
+ *
+ * @return array En 0 la clause in sous forme de string paramétré et en 1 les arguments
+ */
+function generateInClauseAndArgs(string $field, array $arrayElem, string $prefix = "p") {
+    $res = "{$field} IN (";
+    $first = true;
+    $cpt = 0;
+    $args = [];
+
+    foreach($arrayElem as $elem) {
+        if ($first) {
+            $first = false;
+        } else {
+            $res .= ", ";
         }
 
-        $res->free_result();
+        $key = $prefix.$cpt;
+        $res .= ":{$key}";
+        $cpt++;
+        $args[$key] = $elem;
     }
-    return $list;
+
+    return [$res.")", $args];
 }

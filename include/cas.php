@@ -6,7 +6,7 @@
  * @param array $configCas La configuration du cas
  */
 function casInit(array $configCas) {
-    $cas_host = $configCas["host"];
+    /*$cas_host = $configCas["host"];
     $cas_port = $configCas["port"];
     $cas_context = $configCas["context"];
     $cas_server_ca_cert_path = $configCas["certificat"];
@@ -21,7 +21,7 @@ function casInit(array $configCas) {
     
     phpCAS::setCasServerCACert($cas_server_ca_cert_path);
     phpCAS::handleLogoutRequests(true, $cas_reals_hosts);
-    phpCAS::forceAuthentication();
+    phpCAS::forceAuthentication();*/
 }
 
 /**
@@ -37,5 +37,6 @@ function casLogout() {
  * @param string $attributeName Le nom de l'attribut a récupérer
  */
 function getCasAttribute(string $attributeName) {
+    return null;
     return $_SESSION['phpCAS']['attributes'][$attributeName];
 }
