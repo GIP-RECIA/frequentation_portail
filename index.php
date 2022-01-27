@@ -1,8 +1,8 @@
 <?php
 
-
 require './vendor/autoload.php';
 require './include/cas.php';
+require './include/db.php';
 require './include/web-functions.php';
 
 const VIEW_SERVICES = "services";
@@ -17,17 +17,7 @@ function main() {
         casLogout();
     }
     
-    $dbConf = $configs['db'];
-
-    try {
-        $pdo = new PDO(
-            "mysql:host={$dbConf['host']};port={$dbConf['port']};dbname={$dbConf['dbName']};charset=utf8",
-            $dbConf['user'],
-            $dbConf['password']
-        );
-    } catch (Exception $e) {
-        die("Connection failed: " . $e->getMessage());
-    }
+    $pdo = getNewPdo($configs['db']);
     
     //$_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'] = "19450042700035"; //durzy
     //unset($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']);
