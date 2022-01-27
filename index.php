@@ -1,31 +1,15 @@
 <?php
 
-require './vendor/autoload.php';
-require './include/web-functions.php';
-
 $configs = include('./include/config.php');
 
-$annuaireParams = $configs['cas'];
+require './vendor/autoload.php';
+require './include/cas.php';
+require './include/web-functions.php';
 
-$cas_host = $annuaireParams["host"];
-$cas_port = $annuaireParams["port"];
-$cas_context = $annuaireParams["context"];
-$cas_server_ca_cert_path = $annuaireParams["certificat"];
-
-$cas_reals_hosts = [$cas_host];
-//si uniquement tranmission attribut
-phpCAS::setDebug();
-phpCAS::setVerbose(true);
-
-phpCAS::client(CAS_VERSION_2_0, $cas_host, $cas_port, $cas_context);
-//phpCAS::client(SAML_VERSION_1_1, $cas_host, $cas_port, $cas_context);
-
-phpCAS::setCasServerCACert($cas_server_ca_cert_path);
-phpCAS::handleLogoutRequests(true, $cas_reals_hosts);
-phpCAS::forceAuthentication();
+casInit($configs['cas']);
 
 if (isset($_REQUEST['logout'])) {
-    phpCAS::logout();
+    casLogout();
 }
 
 $db = $configs['db'];
@@ -37,11 +21,11 @@ if ($conn->connect_error) {
 
 //$_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'] = "19450042700035"; //durzy
 //unset($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']);
-$siren = $_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'];
+$siren = getCasAttribute('ESCOSIRENCourant');
 //enseignant: National_ENS
 //directeur: National_DIR
-$role = $_SESSION['phpCAS']['attributes']['ENTPersonProfils'];
-$etablissement = !empty($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']) ? get_etablissement_id_by_siren($siren) : null;
+$role = getCasAttribute('ENTPersonProfils');
+$etablissement = !empty($siren) ? get_etablissement_id_by_siren($siren) : null;
 $etabReadOnly = $etablissement !== null ? true : false;
 $show_simple_data = !empty($etablissement) && $role == "National_DIR";
 
