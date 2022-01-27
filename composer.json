@@ -1,5 +1,5 @@
 {
-  "name": "CR_Stats_ENT",
+  "name": "gip_recia/frequentation_portail",
   "description": "",
   "require": {
     "jasig/phpcas": "^1.3",
