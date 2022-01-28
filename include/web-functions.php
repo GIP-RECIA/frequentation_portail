@@ -53,17 +53,16 @@ function displayTable(Object &$pdo, string $etabId, string $resultType, array $e
 }
 
 /**
- * Génère la popup top
+ * Génère les données de la popup top
  *
  * @param Object $pdo       L'objet pdo
  * @param string $serviceId L'identifiant du service
  * @param string $mois      Le mois ou "-1" si tous les mois
  */
-function getTopHTML(Object &$pdo, string $serviceId, string $mois) {
+function getTopData(Object &$pdo, string $serviceId, string $mois) {
+    $table = [];
     $etabs = [];
     $stats = [];
-    $html = '<table id="top20Desc" class="topResult">';
-    $html .= "<tr><td>Établissement</td><td>Total</td><td>Élèves</td><td>Enseignants</td><td>Autres</td></tr>";
     $intServiceId = intval($serviceId);
     $where = "";
 
@@ -99,29 +98,19 @@ function getTopHTML(Object &$pdo, string $serviceId, string $mois) {
     $req->execute($args);
 
     while ($row = $req->fetch()) {
-        $eleves = 0;
-        $enseignants = 0;
-        $autres = 0;
-        $total_eleves = intval($row['eleve__differents_users']);
-        $total_enseignants = intval($row['enseignant__differents_users']);
-        $total_autres = intval($row['perso_etab_non_ens__differents_users']) + intval($row['perso_collec__differents_users']);
-
-        if ($total_eleves !== 0) {
-            $eleves = "".round(intval($row['eleve']) / $total_eleves * 100, 2)."%";
-        }
-
-        if ($total_enseignants !== 0) {
-            $enseignants = "".round(intval($row['enseignant']) / $total_enseignants * 100, 2)."%";
-        }
-
-        if ($total_autres !== 0) {
-            $autres = "".round((intval($row['perso_etab_non_ens']) + intval($row['perso_collec'])) / $total_autres * 100, 2)."%";
-        }
-
-        $html .= "<tr><td>{$row['nom']}</td><td>{$row['total']}</td><td>{$eleves}</td><td>{$enseignants}</td><td>{$autres}</td></tr>";
+        $table[] = [
+            'nom' => $row['nom'],
+            'total' => $row['total'],
+            'eleves' => intval($row['eleve']),
+            'enseignants' => intval($row['enseignant']),
+            'autres' => intval($row['perso_etab_non_ens']) + intval($row['perso_collec']),
+            'totalEleves' => intval($row['eleve__differents_users']),
+            'totalEnseignants' => intval($row['enseignant__differents_users']),
+            'totalAutres' => intval($row['perso_etab_non_ens__differents_users']) + intval($row['perso_collec__differents_users']),
+        ];
     }
 
-    return $html."</table>";
+    return $table;
 }
 
 /**

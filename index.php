@@ -18,6 +18,10 @@ function main() {
     }
     
     $pdo = getNewPdo($configs['db']);
+    // le dossier ou on trouve les templates
+    $loader = new Twig\Loader\FilesystemLoader('templates');
+    // initialiser l'environement Twig
+    $twig = new Twig\Environment($loader);
     
     //$_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'] = "19450042700035"; //durzy
     //unset($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']);
@@ -59,15 +63,11 @@ function main() {
     }*/
     
     if (isset($_REQUEST["top"])) {
-        echo getTopHTML($pdo, $_REQUEST["serviceId"], $mois);
+        // load template
+        $template = $twig->load('top.html.twig');
+        echo $template->render(['table' => getTopData($pdo, $_REQUEST["serviceId"], $mois)]);
         die;
     }
-
-    // le dossier ou on trouve les templates
-    $loader = new Twig\Loader\FilesystemLoader('templates');
-
-    // initialiser l'environement Twig
-    $twig = new Twig\Environment($loader);
 
     // load template
     $template = $twig->load('index.html.twig');
