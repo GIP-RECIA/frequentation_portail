@@ -53,7 +53,7 @@
             <div id="filters">
                 <h1>Statistiques de fréquentation</h1>
                 <h2>ENT Net O'Centre</h2>
-                {% if not show_simple_data %}
+                {% if not showSimpleData %}
                     <form id="filters" action="" method="post" class="form-inline">
                         <div class="form-group mr-2 mb-3">
                             <label>Voir les résultats pour :</label>
@@ -101,15 +101,15 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-6">
-                    {% if not show_simple_data %}
+                    {% if not showSimpleData %}
                         <div class="custom-control custom-radio custom-control-inline">
                             <input type="radio" id="vueservices" name="vue" class="custom-control-input"
-                                    value="services" {% if resultType == constant('VIEW_SERVICES') %}checked{% endif %} >
+                                    value="services" {% if viewService %}checked{% endif %} >
                             <label class="custom-control-label" for="vueservices">Vue Services</label>
                         </div>
                         <div class="custom-control custom-radio custom-control-inline">
                             <input type="radio" id="vuelycees" name="vue" class="custom-control-input"
-                                    value="etabs" {% if resultType == constant('VIEW_ETABS') %}checked{% endif %} >
+                                    value="etabs" {% if not viewService %}checked{% endif %} >
                             <label class="custom-control-label" for="vuelycees">Vue Etablissements</label>
                         </div>
                     {% endif %}
@@ -122,7 +122,7 @@
                     </div>
                 </div>
             </div>
-            {{ array|raw }}
+            {% include 'array.html.twig' %}
         </div>
     </section>
     <!-- Modal -->

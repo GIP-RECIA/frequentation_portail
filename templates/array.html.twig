@@ -1,0 +1,59 @@
+{% import "macro.html.twig" as macro %}
+<div class="table-responsive">
+    <table id="result" class="table table-sm table-striped population">
+        <thead class="thead-dark">
+            <tr>
+                <th></th>
+                <th colspan="4">Visiteurs - Visites</th>
+                <th colspan="6" class="population-elem">Populations</th>
+                <th colspan="6" class="ratio-elem">Ratio par rapport aux utilisateurs potentiels</th>
+            </tr>
+            <tr>
+                <th>{% if viewService %}Service{% else %}Établissement{% endif %}</th>
+                <th>Au plus quatre fois</th>
+                <th>Au moins cinq fois</th>
+                <th>Nb. visiteurs</th>
+                <th>Total visites</th>
+                <th class="population-elem">Parent</th>
+                <th class="population-elem">Élève</th>
+                <th class="population-elem">Enseignant</th>
+                <th class="population-elem">Personnel d'établissement non enseignant</th>
+                <th class="population-elem">Personnel de collectivité</th>
+                <th class="population-elem">Tuteur de stage</th>
+                <th class="ratio-elem">Parent</th>
+                <th class="ratio-elem">Élève</th>
+                <th class="ratio-elem">Enseignant</th>
+                <th class="ratio-elem">Personnel d'établissement non enseignant</th>
+                <th class="ratio-elem">Personnel de collectivité</th>
+                <th class="ratio-elem">Tuteur de stage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in table %}
+            <tr>
+                <td>
+                    {% if viewService and not showSimpleData %}<span class="top20" data-serviceid="{{ line.id }}" class="float-right">TOP</span>{% endif %}
+                    {{ line.nom }}
+                </td>
+                <td>{{ line.au_plus_quatre_fois }}</td>
+                <td>{{ line.au_moins_cinq_fois }}</td>
+                <td>{{ line.differents_users }}</td>
+                <td>{{ line.total_sessions }}</td>
+                <td class="population-elem">{{ line.parent }}</td>
+                <td class="population-elem">{{ line.eleve }}</td>
+                <td class="population-elem">{{ line.enseignant }}</td>
+                <td class="population-elem">{{ line.persoEtabNonEns }}</td>
+                <td class="population-elem">{{ line.persoCollec }}</td>
+                <td class="population-elem">{{ line.tuteurStage }}</td>
+                <td class="ratio-elem">{{ macro.ratio(line.totalParent, line.parent) }}</td>
+                <td class="ratio-elem">{{ macro.ratio(line.totalEleve, line.eleve) }}</td>
+                <td class="ratio-elem">{{ macro.ratio(line.totalEnseignant, line.enseignant) }}</td>
+                <td class="ratio-elem">{{ macro.ratio(line.totalPersoEtabNonEns, line.persoEtabNonEns) }}</td>
+                <td class="ratio-elem">{{ macro.ratio(line.totalPersoCollec, line.persoCollec) }}</td>
+                <td class="ratio-elem">{{ macro.ratio(line.totalTuteurStage, line.tuteurStage) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+

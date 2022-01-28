@@ -1,0 +1,3 @@
+{% macro ratio(total_users, users) %}
+    {% if total_users == 0 %}0{% else %}{{ (100*users/total_users)|round(2) }}%<br>({{ users }} / {{ total_users }}){% endif %}
+{% endmacro %}

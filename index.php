@@ -75,8 +75,9 @@ function main() {
     // set template variables
     // render template
     echo $template->render([
-        'show_simple_data' => $show_simple_data,
+        'showSimpleData' => $show_simple_data,
         'etabReadOnly' => $etabReadOnly,
+        'viewService' => $resultType === VIEW_SERVICES,
         'resultType' => $resultType,
         'listMois' => $listMois,
         'listEtabs' => getEtablissements($pdo, $etabType),
@@ -84,7 +85,7 @@ function main() {
         'mois' => $mois,
         'etab' => $etab,
         'typesEtab' => $etabType,
-        'array' => displayTable($pdo, $etab, $resultType, $etabType, $mois, $show_simple_data),
+        'table' => displayTable($pdo, $etab, $resultType, $etabType, $mois, $show_simple_data),
     ]);
     
     $pdo = null;

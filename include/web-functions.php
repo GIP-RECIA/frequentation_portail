@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Affiche la table des résultats
+ * Retourne les données du tableau a afficher
  *
  * @param Object        $pdo            L'objet pdo
  * @param string        $etabId         L'identifiant de l'établissement sélectionné ou "-1"
@@ -13,42 +13,43 @@
  * @return string Le code html du tableau
  */
 function displayTable(Object &$pdo, string $etabId, string $resultType, array $etabType, string $mois, bool $showSimpleData) {
-    $resultLabel = $resultType === VIEW_SERVICES ? "Service" : "Établissement";
-    $html = '<div class="table-responsive"><table id="result" class="table table-sm table-striped population">';
-    $html .= '<thead class="thead-dark">';
-    $html .= '<tr>';
-    $html .= '<th></th>';
-    $html .= '<th colspan="4">Visiteurs - Visites</th>';
-    $html .= '<th colspan="6" class="population-elem">Populations</th>';
-    $html .= '<th colspan="6" class="ratio-elem">Ratio par rapport aux utilisateurs potentiels</th>';
-    $html .= '</tr>';
-    $html .= '<tr>';
-    $html .= "<th>${resultLabel}</th>";
-    $html .= '<th>Au plus quatre fois</th>';
-    $html .= '<th>Au moins cinq fois</th>';
-    $html .= '<th>Nb. visiteurs</th>';
-    $html .= '<th>Total visites</th>';
-    $html .= '<th class="population-elem">Parent</th>';
-    $html .= '<th class="population-elem">Élève</th>';
-    $html .= '<th class="population-elem">Enseignant</th>';
-    $html .= '<th class="population-elem">Personnel d\'établissement non enseignant</th>';
-    $html .= '<th class="population-elem">Personnel de collectivité</th>';
-    $html .= '<th class="population-elem">Tuteur de stage</th>';
-    $html .= '<th class="ratio-elem">Parent</th>';
-    $html .= '<th class="ratio-elem">Élève</th>';
-    $html .= '<th class="ratio-elem">Enseignant</th>';
-    $html .= '<th class="ratio-elem">Personnel d\'établissement non enseignant</th>';
-    $html .= '<th class="ratio-elem">Personnel de collectivité</th>';
-    $html .= '<th class="ratio-elem">Tuteur de stage</th>';
-    $html .= '</tr>';
-    $html .= '</thead>';
-    $html .= '<tbody>';
-    $html .= getStatsHTML($pdo, $etabId, $resultType, $etabType, $mois, $showSimpleData);
-    $html .= '</tbody>';
-    $html .= '</table>';
-    $html .= '</div>';
+    $serviceView = $resultType === VIEW_SERVICES;
+    $stats = getStats($pdo, $etabId, $resultType, $etabType, $mois);
+    $statsServices = $stats['statsServices'];
+    $statsEtabs = $stats['statsEtabs'];
+    $html = '';
+    $table = [];
 
-    return $html;
+    foreach ($statsServices as $service) {
+        if ($serviceView) {
+            $statsEtab = $statsEtabs;
+        } else {
+            $statsEtab = $statsEtabs[$service['id']];
+        }
+
+        $line = array_merge($service, [
+            'parent' => intval($service['parent__differents_users']),
+            'eleve' => intval($service['eleve__differents_users']),
+            'enseignant' => intval($service['enseignant__differents_users']),
+            'persoEtabNonEns' => intval($service['perso_etab_non_ens__differents_users']),
+            'persoCollec' => intval($service['perso_collec__differents_users']),
+            'tuteurStage' => intval($service['tuteur_stage__differents_users']),
+            'totalParent' => intval($statsEtab['parent__differents_users']),
+            'totalEleve' => intval($statsEtab['eleve__differents_users']),
+            'totalEnseignant' => intval($statsEtab['enseignant__differents_users']),
+            'totalPersoEtabNonEns' => intval($statsEtab['perso_etab_non_ens__differents_users']),
+            'totalPersoCollec' => intval($statsEtab['perso_collec__differents_users']),
+            'totalTuteurStage' => intval($statsEtab['tuteur_stage__differents_users']),
+        ]);
+
+        if ($serviceView && !$showSimpleData) {
+            $line['id'] = $service['id'];
+        }
+
+        $table[] = $line;
+    }
+
+    return $table;
 }
 
 /**
@@ -140,78 +141,6 @@ function get_etablissement_id_by_siren(Object &$pdo, string $siren) {
     }
 
     return false;
-}
-
-/**
- * Retourne le code html des lignes du tableau de la liste des services/établissements
- *
- * @param Object        $pdo            L'objet pdo
- * @param string        $etabId         L'identifiant de l'établissement sélectionné ou "-1"
- * @param string        $resultType     Le type de vue attendu, soit VIEW_SERVICES, soit VIEW_ETABS
- * @param array<string> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, "-1" pour tous
- * @param string        $mois           Le mois sur lequel on souhaite filtrer, "-1" pour tous
- * @param bool          $showSimpleData Permet de savoir si il faut afficher les boutons top
- *
- * @return string Le code html des lignes du tableau
- */
-function getStatsHTML(Object &$pdo, string $etabId, string $resultType, array $etabType, string $mois, bool $showSimpleData) {
-    $serviceView = $resultType === VIEW_SERVICES;
-    $stats = getStats($pdo, $etabId, $resultType, $etabType, $mois);
-    $statsServices = $stats['statsServices'];
-    $statsEtabs = $stats['statsEtabs'];
-    $html = '';
-
-    foreach ($statsServices as $service) {
-        if ($serviceView) {
-            $statsEtab = $statsEtabs;
-        } else {
-            $statsEtab = $statsEtabs[$service['id']];
-        }
-
-        $parent = intval($service['parent__differents_users']);
-        $eleve = intval($service['eleve__differents_users']);
-        $enseignant = intval($service['enseignant__differents_users']);
-        $perso_etab_non_ens = intval($service['perso_etab_non_ens__differents_users']);
-        $perso_collec = intval($service['perso_collec__differents_users']);
-        $tuteur_stage = intval($service['tuteur_stage__differents_users']);
-        $total_parent = intval($statsEtab['parent__differents_users']);
-        $total_eleve = intval($statsEtab['eleve__differents_users']);
-        $total_enseignant = intval($statsEtab['enseignant__differents_users']);
-        $total_perso_etab_non_ens = intval($statsEtab['perso_etab_non_ens__differents_users']);
-        $total_perso_collec = intval($statsEtab['perso_collec__differents_users']);
-        $total_tuteur_stage = intval($statsEtab['tuteur_stage__differents_users']);
-        $top = "";
-
-        if ($serviceView && !$showSimpleData) {
-            $top = "<span class=\"top20\" data-serviceid=\"{$service['id']}\" class=\"float-right\">TOP</span>";
-        }
-
-        $html .= "<tr>";
-
-        $html .= "<td>{$top}{$service['nom']}</td>";
-        $html .= "<td>{$service['au_plus_quatre_fois']}</td>";
-        $html .= "<td>{$service['au_moins_cinq_fois']}</td>";
-        $html .= "<td>{$service['differents_users']}</td>";
-        $html .= "<td>{$service['total_sessions']}</td>";
-
-        $html .= "<td class=\"population-elem\">{$parent}</td>";
-        $html .= "<td class=\"population-elem\">{$eleve}</td>";
-        $html .= "<td class=\"population-elem\">{$enseignant}</td>";
-        $html .= "<td class=\"population-elem\">{$perso_etab_non_ens}</td>";
-        $html .= "<td class=\"population-elem\">{$perso_collec}</td>";
-        $html .= "<td class=\"population-elem\">{$tuteur_stage}</td>";
-
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_parent, $parent)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_eleve, $eleve)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_enseignant, $enseignant)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_perso_etab_non_ens, $perso_etab_non_ens)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_perso_collec, $perso_collec)."</td>";
-        $html .= "<td class=\"ratio-elem\">".lineRatio($total_tuteur_stage, $tuteur_stage)."</td>";
-
-        $html .= "</tr>";
-    }
-
-    return $html;
 }
 
 /**
@@ -378,18 +307,6 @@ function getEtablissements(Object &$pdo, array $etabTypes) {
     }
 
     return $etabs;
-}
-
-/**
- * Écrit une ligne de ratio dans le tableau
- * 
- * @param int $nb    Le nombre d'utilisateur
- * @param int $total Le total d'utilisateurs
- *
- * @return string La ligne de ration pour le tableau
- */
-function lineRatio(int $total, int $nb) {
-    return $total === 0 ? '0' : ''.round(($nb/$total)*100, 2)."%<br/>({$nb} / {$total})";
 }
 
 /**
