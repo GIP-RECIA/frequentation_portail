@@ -62,262 +62,31 @@ function main() {
         echo getTopHTML($pdo, $_REQUEST["serviceId"], $mois);
         die;
     }
-    
-    ?>
-    <!doctype html>
-    <html lang="fr">
-        <head>
-            <meta charset="utf-8">
-            <title>Statistiques</title>
-    
-            <script src="./assets/js/jquery.min.js"></script>
-            <script src="./assets/js/boostrap.min.js"></script>
-            <script src="./assets/js/datatables.min.js"></script>
-            <script src="./assets/js/select2.js"></script>
-            <script src="./assets/js/datatables.buttons.min.js"></script>
-            <script src="./assets/js/buttons_flash.js"></script>
-            <script src="./assets/js/jszip.min.js"></script>
-            <script src="./assets/js/buttons.html5.js"></script>
-            <script src="./assets/js/button.print.js"></script>
-    
-    
-            <link rel="stylesheet" href="./assets/css/bootstrap.css">
-            <link rel="stylesheet" href="./assets/css/datatables.css">
-            <link rel="stylesheet" href="./assets/css/datatables.responsive.css">
-            <link rel="stylesheet" href="./assets/css/select2.css">
-            <link rel="stylesheet" href="./assets/css/styles.css"/>
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    const checkbox = document.querySelector('input[name="switch1"]');
-    
-                    checkbox.addEventListener('change', function () {
-                        const result = document.getElementById("result");
-                        if (checkbox.checked) {
-                            result.classList.replace("population", "ratio");
-                        } else {
-                            result.classList.replace("ratio", "population");
-                        }
-                    });
-                });
-            </script>
-        </head>
-    
-        <body>
-        <header>
-            <div class="navbar navbar-dark bg-dark shadow-sm">
-                <div class="container-fluid d-block">
-                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarHeader"
-                            aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <a class="navbar-brand" href="#"><img src="./images/logoNOC.svg" alt="Net O'Centre"></a>
-                </div>
-            </div>
-        </header>
-        <section id="chapeau">
-            <div class="container-fluid">
-                <div id="filters">
-                    <h1>Statistiques de fréquentation</h1>
-                    <h2>ENT Net O'Centre</h2>
-                    <?php if (!$show_simple_data): ?>
-                        <form id="filters" action="" method="post" class="form-inline">
-                            <div class="form-group mr-2 mb-3">
-                                <label>Voir les résultats pour :</label>
-                            </div>
-                            <?php
-                            if (!$etabReadOnly) {
-                            ?>
-                            <div class="form-group mr-2 mb-3">
-                                <label for="etabType" class="sr-only">catégorie</label>
-                                <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple"
-                                        multiple="multiple" style="width:300px;">
-                                    <?php
-                                    $types = getTypesEtablissements($pdo);
 
-                                    foreach ($types as $name) {
-                                        echo "<option value=\"" . $name . "\"" . ((in_array($name, $etabType)) ? " selected " : "") . ">" . $name . "</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            <?php
-                            }
-                            ?>
-                            <div class="form-group mr-2 mb-3">
-                                <label for="etab" class="sr-only">établissement</label>
-                                <select id="etab" name="etab" class="form-control">
-                                    <?php
-                                    $etabs = getEtablissements($pdo, $etabType);
+    // le dossier ou on trouve les templates
+    $loader = new Twig\Loader\FilesystemLoader('templates');
+
+    // initialiser l'environement Twig
+    $twig = new Twig\Environment($loader);
+
+    // load template
+    $template = $twig->load('index.html.twig');
+
+    // set template variables
+    // render template
+    echo $template->render([
+        'show_simple_data' => $show_simple_data,
+        'etabReadOnly' => $etabReadOnly,
+        'resultType' => $resultType,
+        'listMois' => $listMois,
+        'listEtabs' => getEtablissements($pdo, $etabType),
+        'listTypesEtab' => getTypesEtablissements($pdo),
+        'mois' => $mois,
+        'etab' => $etab,
+        'typesEtab' => $etabType,
+        'array' => displayTable($pdo, $etab, $resultType, $etabType, $mois, $show_simple_data),
+    ]);
     
-                                    if (!$etabReadOnly) {
-                                        echo '<option value="-1">Tous les établissements</option>';
-                                    }
-    
-                                    foreach ($etabs as $id => $name) {
-                                        if (!$etabReadOnly || $etab == $id) {
-                                            echo "<option value=" . $id . " " . (($etab == $id) ? " selected " : "") . ">" . $name . "</option>";
-                                        }
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            <div class="form-group mr-2 mb-3">
-                                <label for="mois" class="sr-only">Période</label>
-                                <select id="mois" name="mois" class="form-control">
-                                    <option value="-1">Tous les mois</option>
-                                    <?php
-                                    foreach ($listMois as $m) {
-                                        echo '<option ' . (($m == $mois) ? " selected " : "") . ' value="' . $m . '">' . $m . '</option>';
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            <button id="filterBtn" class="btn btn-primary mb-3">Filtrer</button>
-                            <button id="reset" class="btn btn-default mb-3">Ré-initialiser les filtres</button>
-                            <input id="resultType" type="hidden" name="resultType" value="<?= $resultType ?>"/>
-                        </form>
-                    <?php endif; ?>
-                </div>
-                <div>
-        </section>
-        <section id="statistiques">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-6">
-                        <?php if (!$show_simple_data): ?>
-                            <div class="custom-control custom-radio custom-control-inline">
-                                <input type="radio" id="vueservices" name="vue" class="custom-control-input"
-                                       value="services" <?= (($resultType == VIEW_SERVICES) ? 'checked' : '') ?> >
-                                <label class="custom-control-label" for="vueservices">Vue Services</label>
-                            </div>
-                            <div class="custom-control custom-radio custom-control-inline">
-                                <input type="radio" id="vuelycees" name="vue" class="custom-control-input"
-                                       value="etabs" <?= (($resultType == VIEW_ETABS) ? 'checked' : '') ?> >
-                                <label class="custom-control-label" for="vuelycees">Vue Etablissements</label>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="col-6">
-                        <div class="custom-control custom-switch text-right mb-3">
-                            <input type="checkbox" class="custom-control-input" id="customSwitch1" name="switch1">
-                            <label class="custom-control-label" for="customSwitch1">Voir le ratio des visites par rapport aux
-                                utilisateurs potentiels</label>
-                        </div>
-                    </div>
-                </div>
-                <?php
-                // TODO: a revoir
-                echo displayTable($pdo, $etab, $resultType, $etabType, $mois, $show_simple_data);
-                ?>
-            </div>
-        </section>
-        <!-- Modal -->
-        <div class="modal fade " id="topModal" tabindex="-1" role="dialog" aria-labelledby="" aria-hidden="true">
-            <div class="modal-dialog-centered modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="">Classement par établissement</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div id="topContent" class="modal-body">
-    
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">Fermer</button>
-                    </div>
-                </div>
-    
-            </div>
-        </div>
-        </body>
-        <script type="text/javascript">
-            $( document ).ready(function() {
-                jQuery.fn.dataTableExt.oSort["percent-asc"]  = function(x,y) {
-                    const xa = parseFloat(x.split("%")[0]);
-                    const ya = parseFloat(y.split("%")[0]);
-                    return ((xa < ya) ? -1 : ((xa > ya) ? 1 : 0));
-                };
-    
-                jQuery.fn.dataTableExt.oSort["percent-desc"] = function(x,y) {
-                    return jQuery.fn.dataTableExt.oSort["percent-asc"](y, x);
-                };
-    
-                const perType = { "sType": "percent" };
-    
-                $('.top20').click (function () {
-                    $.ajax({
-                        url: "./index.php?top",
-                        type: "POST",
-                        async: false,
-                        data: ({
-                            serviceId: $(this).attr('data-serviceid'),
-                            mois: $('#mois').val()
-                        }),
-                        complete: function(data){
-                            $('#topContent').html(data.responseText);
-                            console.log(data.responseText);
-                            $('#topModal').modal('show');
-                        }
-                    });
-                });
-    
-                $('#result').DataTable({
-                    "paging": false,
-                    "ordering": true,
-                    dom: 'Bfrtip',
-                    buttons: [
-                        {
-                            extend: 'excelHtml5',
-                            exportOptions: {
-                                format: {
-                                    body: function (data, row, column, node) {
-                                        if (column == 0) {
-                                            return data.replace(/<\/?span[^>]*>/g,'').replace('TOP','');
-                                        } else {
-                                            return data.replace(/<br>/g,' - ');
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    ],
-                    "aoColumns": [
-                        null, null, null, null, null,
-                        null, null, null, null, null, null,
-                        perType, perType, perType, perType, perType, perType,
-                    ]
-                });
-    
-                $('input:radio[name="vue"]').change(function(){
-                    if ($(this).is(':checked')) {
-                        $('#resultType').val($(this).val());
-                        $('#filterBtn').click();
-                    }
-                });
-    
-                $('#reset').click (function () {
-                    $('#etabType').val(null);
-                    $('#etab').val(-1);
-                    $('#mois').val(-1);
-                    $(location).attr('href','/');
-                });
-    
-                $('#etab').select2({
-                    disabled: <?php echo $etabReadOnly ? 'true' : 'false'; ?>
-                });
-    
-                // Mutliple select Etablissement
-                $('.js-select2-mutliple').select2({
-                    placeholder: "Tous le types"
-                });
-    
-            })
-        </script>
-    
-    </html>
-    <?php
     $pdo = null;
 }
 
