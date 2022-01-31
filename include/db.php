@@ -16,7 +16,8 @@ function getNewPdo($conf) {
             $conf['user'],
             $conf['password']
         );
-    } catch (Exception $e) {
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (PDOException $e) {
         die("Connection failed: " . $e->getMessage());
     }
 
