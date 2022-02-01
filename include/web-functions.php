@@ -3,18 +3,17 @@
 /**
  * Retourne les données du tableau a afficher
  *
- * @param Object        $pdo            L'objet pdo
- * @param string        $etabId         L'identifiant de l'établissement sélectionné ou "-1"
- * @param string        $resultType     Le type de vue attendu, soit VIEW_SERVICES, soit VIEW_ETABS
- * @param array<string> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, "-1" pour tous
- * @param string        $mois           Le mois sur lequel on souhaite filtrer, "-1" pour tous
- * @param bool          $showSimpleData Permet de savoir si il faut afficher les boutons top
+ * @param Object     $pdo            L'objet pdo
+ * @param int        $etabId         L'identifiant de l'établissement sélectionné ou -1
+ * @param bool       $serviceView    Un booléen pour savoir si l'on attends la vue service ou l'autre
+ * @param array<int> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, [] pour tous
+ * @param int        $mois           L'identifiant du mois sur lequel on souhaite filtrer
+ * @param bool       $showSimpleData Permet de savoir si il faut afficher les boutons top
  *
- * @return string Le code html du tableau
+ * @return array Les données du tableau
  */
-function displayTable(Object &$pdo, string $etabId, string $resultType, array $etabType, string $mois, bool $showSimpleData) {
-    $serviceView = $resultType === VIEW_SERVICES;
-    $stats = getStats($pdo, $etabId, $resultType, $etabType, $mois);
+function getDataTable(Object &$pdo, int $etabId, bool $serviceView, array $etabType, int $mois, bool $showSimpleData) {
+    $stats = getStats($pdo, $etabId, $serviceView, $etabType, $mois);
     $statsServices = $stats['statsServices'];
     $statsEtabs = $stats['statsEtabs'];
     $html = '';
@@ -52,12 +51,15 @@ function displayTable(Object &$pdo, string $etabId, string $resultType, array $e
     return $table;
 }
 
+// TODO:
 /**
  * Génère les données de la popup top
  *
  * @param Object $pdo       L'objet pdo
  * @param string $serviceId L'identifiant du service
  * @param string $mois      Le mois ou "-1" si tous les mois
+ *
+ * @return array Les données à afficher
  */
 function getTopData(Object &$pdo, string $serviceId, string $mois) {
     $table = [];
@@ -85,8 +87,8 @@ function getTopData(Object &$pdo, string $serviceId, string $mois) {
             se.perso_etab_non_ens__differents_users,
             se.perso_collec__differents_users
         FROM etablissements as e
-        INNER JOIN stats_services as s ON e.id = s.id_lycee
-        INNER JOIN stats_etabs as se ON e.id = se.id_lycee
+        INNER JOIN stats_services as s ON e.id = s.id_etablissement
+        INNER JOIN stats_etabs as se ON e.id = se.id_etablissement
         WHERE
             {$where}
             s.id_service = :id_service
@@ -97,7 +99,7 @@ function getTopData(Object &$pdo, string $serviceId, string $mois) {
     $req = $pdo->prepare($sql);
     $req->execute($args);
 
-    while ($row = $req->fetch()) {
+    while ($row = $req->fetch(PDO::FETCH_ASSOC)) {
         $table[] = [
             'nom' => $row['nom'],
             'total' => $row['total'],
@@ -117,58 +119,56 @@ function getTopData(Object &$pdo, string $serviceId, string $mois) {
  * Récupère l'établissement a partir de son SIREN
  *
  * @param Object $pdo   L'objet pdo
+ * @param int    $mois  L'identifiant du mois sur lequel on souhaite filtrer
  * @param string $siren Le siren de l'établissement
  *
- * @param string L'id de l'établissement ou false si n on trouvé
+ * @param int|bool L'id de l'établissement ou false si non trouvé
+ *
+ * @param Exception Si on ne trouve pas l'établissement
  */
-function get_etablissement_id_by_siren(Object &$pdo, string $siren) {
-    $req = $pdo->prepare("SELECT id from etablissements where siren = :siren");
-    $req->execute(["siren" => $siren]);
+function get_etablissement_id_by_siren(Object &$pdo, int $mois, string $siren) {
+    $req = $pdo->prepare("
+        SELECT e.id as id
+        FROM etablissements as e
+        INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
+        WHERE se.id_mois = :id_mois AND  e.siren = :siren");
+    $req->execute(['id_mois' => $mois, 'siren' => $siren]);
 
-    if ($row = $req->fetch()) {
-        return $row['id'];
+    if ($row = $req->fetch(PDO::FETCH_ASSOC)) {
+        return intval($row['id']);
     }
 
-    return false;
+    throw new Exception("Impossible de trouver l'établissement ayant pour siren {$siren} lors du mois ayant l'id {$mois}.");
 }
 
 /**
  * Récupère les statistiques des différents services d'une établissement ou des différents établissement
  *
- * @param Object        $pdo            L'objet pdo
- * @param string        $etabId         L'identifiant de l'établissement sélectionné ou "-1"
- * @param string        $resultType     Le type de vue attendu, soit VIEW_SERVICES, soit VIEW_ETABS
- * @param array<string> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, "-1" pour tous
- * @param string        $mois           Le mois sur lequel on souhaite filtrer, "-1" pour tous
+ * @param Object     $pdo         L'objet pdo
+ * @param int        $etabId      L'identifiant de l'établissement sélectionné ou -1
+ * @param bool       $serviceView Un booléen pour savoir si l'on attends la vue service ou l'autre
+ * @param array<int> $etabType    Les types d'établissement sur lesquels on souhaite filtrer, [] pour tous
+ * @param int        $mois        L'identifiant du mois sur lequel on souhaite filtrer
  *
  * @return array Le tableau des résultats
  */
-function getStats(Object &$pdo, string $etabId, string $resultType, array $etabType, string $mois) {
-    $serviceView = $resultType === VIEW_SERVICES;
-    $where = [];
+function getStats(Object &$pdo, int $etabId, bool $serviceView, array $etabType, int $mois) {
+    $where = ["id_mois = :id_mois"];
     $statsServices = [];
     $statsEtabs = [];
     $join = "";
     $from = "";
     $select2 = "";
     $groupBy2 = "";
-    $args = [];
+    $args = ['id_mois' => $mois];
 
-    if ($etabId !== '-1') {
-        $where[] = "id_lycee = :id_lycee";
-        $args['id_lycee'] = $etabId;
+    if ($etabId !== -1) {
+        $where[] = "id_etablissement = :id_etablissement";
+        $args['id_etablissement'] = $etabId;
     }
 
-    if ($mois !== '-1') {
-        $r = explode(' / ', $mois);
-        $localMois = $r[0];
-        $localAnnee = $r[1];
-        $where[] = "mois = :mois and annee = :annee";
-        $args = array_merge($args, ['mois' => $localMois, 'annee' => $localAnnee]);
-    }
-
-    if (count($etabType) !== 0) {
-        $res = generateInClauseAndArgs("%alias%.type", $etabType);
+    if ($etabType !== []) {
+        $res = generateInClauseAndArgs("%alias%.id_type", $etabType);
         $where[] = $res[0];
         $args = array_merge($args, $res[1]);
     }
@@ -180,17 +180,17 @@ function getStats(Object &$pdo, string $etabId, string $resultType, array $etabT
     }
 
     if ($serviceView) {
+        $from = "FROM stats_services as s";
         $join = 
             "INNER JOIN services as e ON e.id = s.id_service
-            INNER JOIN etablissements as etab ON etab.id = s.id_lycee";
-        $from = "FROM stats_services as s";
+            INNER JOIN etablissements as etab ON etab.id = s.id_etablissement";
         $alias = "etab";
     } else {
-        $join = "INNER JOIN etablissements as e ON e.id = s.id_lycee";
         $from = "FROM stats_etabs as s";
+        $join = "INNER JOIN etablissements as e ON e.id = s.id_etablissement";
         $alias = "e";
-        $select2 = "s.id_lycee as id,";
-        $groupBy2 = "GROUP BY id_lycee";
+        $select2 = "s.id_etablissement as id,";
+        $groupBy2 = "GROUP BY id_etablissement";
     }
 
     $where1 = str_replace("%alias%", $alias, $where);
@@ -219,7 +219,7 @@ function getStats(Object &$pdo, string $etabId, string $resultType, array $etabT
     $req = $pdo->prepare($sql);
     $req->execute($args);
 
-    while ($row = $req->fetch()) {
+    while ($row = $req->fetch(PDO::FETCH_ASSOC)) {
         $statsServices[] = $row;
     }
 
@@ -233,7 +233,7 @@ function getStats(Object &$pdo, string $etabId, string $resultType, array $etabT
             SUM(s.perso_collec__differents_users) as perso_collec__differents_users,
             SUM(s.tuteur_stage__differents_users) as tuteur_stage__differents_users
         FROM stats_etabs as s
-        INNER JOIN etablissements as etab ON etab.id = s.id_lycee
+        INNER JOIN etablissements as etab ON etab.id = s.id_etablissement
         {$where2}
         {$groupBy2}";
 
@@ -241,10 +241,10 @@ function getStats(Object &$pdo, string $etabId, string $resultType, array $etabT
     $req->execute($args);
 
     if ($serviceView) {
-        $row = $req->fetch();
+        $row = $req->fetch(PDO::FETCH_ASSOC);
         $statsEtabs = $row;
     } else {
-        while ($row = $req->fetch()) {
+        while ($row = $req->fetch(PDO::FETCH_ASSOC)) {
             $statsEtabs[$row['id']] = $row;
         }
     }
@@ -253,68 +253,90 @@ function getStats(Object &$pdo, string $etabId, string $resultType, array $etabT
 }
 
 /**
+ * Génère la liste des mois ordonnées et bien formaté
+ *
+ * @param Object $pdo   L'objet pdo
+ * @param string $siren Le siren de l'établissement dont on souhaite afficher les mois, si présent
+ *
+ * @return array<string> La liste des mois
+ */
+function getListMois(Object &$pdo, string $siren = null) {
+    $sql = "";
+
+    if (empty($siren)) {
+        $sql = "SELECT id, concat(LPAD(mois,2,'0'), ' / ', annee) as mois FROM mois ORDER BY annee DESC, mois DESC";
+        $data = [];
+    } else {
+        $sql = "
+            SELECT m.id as id, concat(LPAD(mois,2,'0'), ' / ', annee) as mois
+            FROM mois as m
+            INNER JOIN stats_etabs as se ON se.id_mois = m.id
+            INNER JOIN etablissements as e ON e.id = se.id_etablissement
+            WHERE e.siren = :siren
+            ORDER BY m.annee DESC, m.mois DESC";
+        $data = ['siren' => $siren];
+    }
+
+    $req = $pdo->prepare($sql);
+    $req->execute($data);
+
+    return $req->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
  * Retourne la liste des types d'établissement
  *
- * @param Object $pdo L'objet pdo
+ * @param Object $pdo  L'objet pdo
+ * @param int    $mois L'identifiant du mois
  *
  * @return array<string> Un tableau de types d'établissements
  */
-function getTypesEtablissements(Object &$pdo)
+function getTypesEtablissements(Object &$pdo, int $mois)
 {
-    $req = $pdo->prepare("SELECT distinct(type) as t FROM etablissements order by t asc");
-    $req->execute();
-    $types = [];
+    // On ne récupère que les types d'établissement du mois actuel
+    //  au cas où il y'aurait eu des types différents lors d'un autre mois
+    $req = $pdo->prepare("
+        SELECT t.id as id, t.nom as nom
+        FROM types as t
+        INNER JOIN etablissements as e ON e.id_type = t.id
+        INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
+        WHERE se.id_mois = :id_mois
+        GROUP BY t.id
+        ORDER BY t.nom asc");
+    $req->execute(['id_mois' => $mois]);
 
-    while ($row = $req->fetch()) {
-        $types[] = $row['t'];
-    }
-
-    return $types;
+    return $req->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
  * Retourne la liste des établissements en fonction du/des types d'établissement si ils sont présents
  *
- * @param Object $pdo L'objet pdo
- * @param array<string> $etabTypes Les types d'établissement à retourner
+ * @param Object     $pdo       L'objet pdo
+ * @param int        $mois      L'identifiant du mois
+ * @param array<int> $etabTypes Les types d'établissement à retourner
  *
- * @return array<string, string> Un tableau d'établissements
+ * @return array<id, string> Un tableau d'établissements
  */
-function getEtablissements(Object &$pdo, array $etabTypes) {
-    $etabs = [];
+function getEtablissements(Object &$pdo, int $mois, array $etabTypes) {
     $where = "";
+    $func = function(array $arr) {
+        $arr['id'] = intval($arr['id']);
+
+        return $arr;
+    };
 
     if (count($etabTypes) !== 0) {
-        $where = "WHERE ".generateInClause("type", $etabTypes);
+        $where = "AND ".generateInClause("e.id_type", $etabTypes);
     }
     
-    $req = $pdo->prepare("SELECT * FROM etablissements {$where}");
-    $req->execute($etabTypes);
+    $req = $pdo->prepare("
+        SELECT e.id as id, e.nom as nom
+        FROM etablissements as e
+        INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
+        WHERE se.id_mois = ? ${where}");
+    $req->execute(array_merge([$mois], $etabTypes));
 
-    while ($row = $req->fetch()) {
-        $etabs[$row['id']] = $row['nom'];
-    }
-
-    return $etabs;
-}
-
-/**
- * Génère la liste des mois ordonnées et bien formaté
- *
- * @param Object $pdo L'objet pdo
- *
- * @return array<string> La liste des mois
- */
-function getListMois(Object &$pdo) {
-    $req = $pdo->prepare("SELECT DISTINCT(concat(LPAD(mois,2,'0'), ' / ', annee)) as m FROM stats_etabs ORDER BY annee DESC, m DESC");
-    $req->execute();
-    $list = [];
-
-    while ($row = $req->fetch()) {
-        $list[] = $row['m'];
-    }
-
-    return $list;
+    return array_map($func, $req->fetchAll(PDO::FETCH_ASSOC));
 }
 
 /**

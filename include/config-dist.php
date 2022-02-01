@@ -15,4 +15,5 @@ return [
         'certificat' => "",
     ],
     'importDir' => '',
+    'env' => "prod",
 ];

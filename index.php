@@ -9,86 +9,104 @@ const VIEW_SERVICES = "services";
 const VIEW_ETABS = "etabs";
 
 function main() {
-    $configs = include('./include/config.php');
-    
-    casInit($configs['cas']);
-    
-    if (isset($_REQUEST['logout'])) {
-        casLogout();
-    }
-    
-    $pdo = getNewPdo($configs['db']);
-    // le dossier ou on trouve les templates
-    $loader = new Twig\Loader\FilesystemLoader('templates');
-    // initialiser l'environement Twig
-    $twig = new Twig\Environment($loader);
-    
-    //$_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'] = "19450042700035"; //durzy
-    //unset($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']);
-    $siren = getCasAttribute('ESCOSIRENCourant');
-    //enseignant: National_ENS
-    //directeur: National_DIR
-    $role = getCasAttribute('ENTPersonProfils');
-    $etablissement = !empty($siren) ? get_etablissement_id_by_siren($pdo, $siren) : null;
-    $etabReadOnly = $etablissement !== null ? true : false;
-    $show_simple_data = !empty($etablissement) && $role == "National_DIR";
-    
-    if (!empty($etablissement)) {
-        $_REQUEST["etab"] = $etablissement;
-    }
-    
-    $mois = "-1";
-    $etab = "-1";
-    $resultType = VIEW_SERVICES;
-    $etabType = [];
-    
-    $listMois = getListMois($pdo);
-    
-    if (isset($_REQUEST["etabType"]))
-        $etabType = $_REQUEST["etabType"];
-    
-    //$resultType = "etabs";
-    if (isset($_REQUEST["etab"]))
-        $etab = $_REQUEST["etab"];
-    
-    if (isset($_REQUEST["mois"]))
-        $mois = $_REQUEST["mois"];
-    
-    if (isset($_REQUEST["resultType"]))
-        $resultType = $_REQUEST["resultType"];
-    
-    /*if (isset($_REQUEST["resultId"])) {
-        echo getStatsHTML($_REQUEST["resultId"]);
-        die;
-    }*/
-    
-    if (isset($_REQUEST["top"])) {
+    try {
+        $configs = include('./include/config.php');
+        
+        casInit($configs['cas']);
+        
+        if (isset($_REQUEST['logout'])) {
+            casLogout();
+        }
+        
+        $pdo = getNewPdo($configs['db']);
+        
+        //$_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'] = "19450042700035"; //durzy
+        //unset($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']);
+        $siren = getCasAttribute('ESCOSIRENCourant');
+        //enseignant: National_ENS
+        //directeur: National_DIR
+        $role = getCasAttribute('ENTPersonProfils');
+        $mois = null;
+        $listMois = getListMois($pdo, $siren);
+        
+        if (isset($_REQUEST["mois"])) {
+            $mois = intval($_REQUEST["mois"]);
+        // Si aucun mois n'est sélectionné, on prends le premier de la liste qui est le plus récent
+        } else if (count($listMois) > 0) {
+            $mois = intval($listMois[0]['id']);
+        }
+
+        $etablissement = !empty($siren) ? get_etablissement_id_by_siren($pdo, $mois, $siren) : null;
+        $etabReadOnly = $etablissement !== null;
+        $show_simple_data = $etablissement !== null && $role == "National_DIR";
+        
+        if ($etablissement !== null) {
+            $_REQUEST["etab"] = $etablissement;
+        }
+        
+        $etab = -1;
+        $resultType = VIEW_SERVICES;
+        $etabType = [];
+        $serviceView = true;
+        
+        
+        if (isset($_REQUEST["etabType"])) {
+            $etabType = array_map('intval', $_REQUEST["etabType"]);
+        }
+        
+        if (isset($_REQUEST["etab"])) {
+            $etab = intval($_REQUEST["etab"]);
+        }
+        
+        if (isset($_REQUEST["resultType"])) {
+            $serviceView = $_REQUEST["resultType"] !== VIEW_ETABS;
+        }
+        
+        if (isset($_REQUEST["top"])) {
+            $templateFile = 'top.html.twig';
+            $templateDate = ['table' => getTopData($pdo, $_REQUEST["serviceId"], $mois)];
+        } else {
+            $templateFile = 'index.html.twig';
+            $templateDate = [
+                'showSimpleData' => $show_simple_data,
+                'etabReadOnly' => $etabReadOnly,
+                'viewService' => $serviceView,
+                'listMois' => $listMois,
+                'listTypesEtab' => getTypesEtablissements($pdo, $mois),
+                'listEtabs' => getEtablissements($pdo, $mois, $etabType),
+                'mois' => $mois,
+                'typesEtab' => $etabType,
+                'etab' => $etab,
+                'table' => getDataTable($pdo, $etab, $serviceView, $etabType, $mois, $show_simple_data),
+            ];
+        }
+
+        //print_r($templateDate['listEtabs']);
+
+        $pdo = null;
+
+        // le dossier ou on trouve les templates
+        $loader = new Twig\Loader\FilesystemLoader('templates');
+        // initialiser l'environnement Twig
+        $twig = new Twig\Environment($loader);
         // load template
-        $template = $twig->load('top.html.twig');
-        echo $template->render(['table' => getTopData($pdo, $_REQUEST["serviceId"], $mois)]);
-        die;
+        $template = $twig->load($templateFile);
+        // set template variables
+        // render template
+        echo $template->render($templateDate);
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo "Server Error";
+
+        // Si on est pas en prod, on affiche l'erreur, sinon on la log
+        if (array_key_exists('env', $configs) && $configs['env'] !== "prod") {
+            $trace = $e->getTrace();
+            echo "<br>".$e->getMessage();
+            echo "<br>Fichier : ".$trace[0]['file'].":".$trace[0]['line'];
+        } else {
+            error_log($e->getMessage());
+        }
     }
-
-    // load template
-    $template = $twig->load('index.html.twig');
-
-    // set template variables
-    // render template
-    echo $template->render([
-        'showSimpleData' => $show_simple_data,
-        'etabReadOnly' => $etabReadOnly,
-        'viewService' => $resultType === VIEW_SERVICES,
-        'resultType' => $resultType,
-        'listMois' => $listMois,
-        'listEtabs' => getEtablissements($pdo, $etabType),
-        'listTypesEtab' => getTypesEtablissements($pdo),
-        'mois' => $mois,
-        'etab' => $etab,
-        'typesEtab' => $etabType,
-        'table' => displayTable($pdo, $etab, $resultType, $etabType, $mois, $show_simple_data),
-    ]);
-    
-    $pdo = null;
 }
 
 main();

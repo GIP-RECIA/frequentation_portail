@@ -82,7 +82,7 @@ function importDataEtabs(Object &$pdo, string $folder) {
         $reqGetEtab->execute($etab);
 
         // Si l'établissement existe déjà, on récupère son id, sinon on l'insère
-        if ($row = $reqGetEtab->fetch()) {
+        if ($row = $reqGetEtab->fetch(PDO::FETCH_ASSOC)) {
             $id = $row['id'];
         } else {
             // TODO: ajouter le traitement pour l'UAI
@@ -269,7 +269,7 @@ function loadServices(Object &$pdo) {
     $req->execute();
     $arrIdServiceFromName = [];
 
-    while ($row = $req->fetch()) {
+    while ($row = $req->fetch(PDO::FETCH_ASSOC)) {
         $arrIdServiceFromName[$row['nom']] = intval($row['id']);
     }
 
@@ -288,7 +288,7 @@ function loadTypes(Object &$pdo) {
     $req->execute();
     $arrTypes = [];
 
-    while ($row = $req->fetch()) {
+    while ($row = $req->fetch(PDO::FETCH_ASSOC)) {
         $arrTypes[intval($row['id'])] = $row['nom'];
     }
 
@@ -313,7 +313,7 @@ function getIdServiceFromName(Object &$pdo, array &$arrIdServiceFromName, $servi
     $req = $pdo->prepare("SELECT id FROM services WHERE nom = :nom");
     $req->execute(['nom' => $serviceName]);
 
-    if ($row = $req->fetch()) {
+    if ($row = $req->fetch(PDO::FETCH_ASSOC)) {
         $idService = $row['id'];
     } else {
 

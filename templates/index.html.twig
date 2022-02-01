@@ -58,13 +58,21 @@
                         <div class="form-group mr-2 mb-3">
                             <label>Voir les résultats pour :</label>
                         </div>
+                        <div class="form-group mr-2 mb-3">
+                            <label for="mois" class="sr-only">Période</label>
+                            <select id="mois" name="mois" class="form-control">
+                                {% for forMois in listMois %}
+                                    <option {% if forMois.id == mois %}selected {% endif %}value="{{ forMois.id }}">{{ forMois.mois }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         {% if not etabReadOnly %}
                         <div class="form-group mr-2 mb-3">
                             <label for="etabType" class="sr-only">catégorie</label>
                             <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple"
                                     multiple="multiple" style="width:300px;">
-                                {% for name in listTypesEtab %}
-                                    <option {% if name in typesEtab %}selected {% endif %}value="{{ name }}">{{ name }}</option>
+                                {% for forTypeEtab in listTypesEtab %}
+                                    <option {% if forTypeEtab.id in typesEtab %}selected {% endif %}value="{{ forTypeEtab.id }}">{{ forTypeEtab.nom }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -73,25 +81,16 @@
                             <label for="etab" class="sr-only">établissement</label>
                             <select id="etab" name="etab" class="form-control" data-disabled="{{ etabReadOnly ? 'true' : 'false' }}">
                                 {% if not etabReadOnly %}<option value="-1">Tous les établissements</option>{% endif %}
-                                {% for id, name in listEtabs %}
-                                    {% if (not etabReadOnly) or id == etab %}
-                                    <option {% if id == etab %}selected {% endif %}value="{{ id }}">{{ name }}</option>
+                                {% for forEtab in listEtabs %}
+                                    {% if (not etabReadOnly) or forEtab.id == etab %}
+                                    <option {% if forEtab.id == etab %}selected {% endif %}value="{{ forEtab.id }}">{{ forEtab.nom }}</option>
                                     {% endif %}
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group mr-2 mb-3">
-                            <label for="mois" class="sr-only">Période</label>
-                            <select id="mois" name="mois" class="form-control">
-                                <option value="-1">Tous les mois</option>
-                                {% for forMois in listMois %}
-                                    <option {% if forMois == mois %}selected {% endif %}value="{{ forMois }}">{{ forMois }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <button id="filterBtn" class="btn btn-primary mb-3">Filtrer</button>
                         <button id="reset" class="btn btn-default mb-3">Ré-initialiser les filtres</button>
-                        <input id="resultType" type="hidden" name="resultType" value="{{ resultType }}"/>
+                        <input id="resultType" type="hidden" name="resultType" value="{% if viewService %}{{ constant('VIEW_SERVICES') }}{% else %}{{ constant('VIEW_ETABS') }}{% endif %}"/>
                     </form>
                 {% endif %}
             </div>
