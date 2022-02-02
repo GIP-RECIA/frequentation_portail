@@ -33,12 +33,12 @@ function getDataTable(PDO &$pdo, int $etabId, bool $serviceView, array $etabType
             'persoEtabNonEns' => intval($service['perso_etab_non_ens__differents_users']),
             'persoCollec' => intval($service['perso_collec__differents_users']),
             'tuteurStage' => intval($service['tuteur_stage__differents_users']),
-            'totalParent' => intval($statsEtab['parent__differents_users']),
-            'totalEleve' => intval($statsEtab['eleve__differents_users']),
-            'totalEnseignant' => intval($statsEtab['enseignant__differents_users']),
-            'totalPersoEtabNonEns' => intval($statsEtab['perso_etab_non_ens__differents_users']),
-            'totalPersoCollec' => intval($statsEtab['perso_collec__differents_users']),
-            'totalTuteurStage' => intval($statsEtab['tuteur_stage__differents_users']),
+            'totalParent' => intval($statsEtab['parent__total_pers']),
+            'totalEleve' => intval($statsEtab['eleve__total_pers']),
+            'totalEnseignant' => intval($statsEtab['enseignant__total_pers']),
+            'totalPersoEtabNonEns' => intval($statsEtab['perso_etab_non_ens__total_pers']),
+            'totalPersoCollec' => intval($statsEtab['perso_collec__total_pers']),
+            'totalTuteurStage' => intval($statsEtab['tuteur_stage__total_pers']),
         ]);
 
         if ($serviceView && !$showSimpleData) {
@@ -54,47 +54,37 @@ function getDataTable(PDO &$pdo, int $etabId, bool $serviceView, array $etabType
 /**
  * Génère les données de la popup top
  *
- * @param Object $pdo       L'objet pdo
- * @param string $serviceId L'identifiant du service
- * @param string $mois      Le mois ou "-1" si tous les mois
+ * @param Object $pdo         L'objet pdo
+ * @param int    $idService   L'identifiant du service
+ * @param int    $idMois      L'identifiant du mois
  *
  * @return array Les données à afficher
  */
-function getTopData(Object &$pdo, string $serviceId, string $mois): array {
+function getTopData(Object &$pdo, int $idService, int $idMois): array {
     $table = [];
     $etabs = [];
     $stats = [];
-    $intServiceId = intval($serviceId);
-    $where = "";
-
-    /*if ($mois !== "-1") {
-        $where = generateWhereMonth($mois)." AND";
-    }*/
 
     $sql =
         "SELECT
-            e.id,
-            e.nom,
-            SUM(s.total_sessions) as total,
-            s.differents_users,
-            CEIL(AVG(s.eleve__differents_users)) as eleve,
-            CEIL(AVG(s.enseignant__differents_users)) as enseignant,
-            CEIL(AVG(s.perso_etab_non_ens__differents_users)) as perso_etab_non_ens,
-            CEIL(AVG(s.perso_collec__differents_users)) as perso_collec,
-            se.eleve__differents_users,
-            se.enseignant__differents_users,
-            se.perso_etab_non_ens__differents_users,
-            se.perso_collec__differents_users
+            e.nom as nom,
+            s.total_sessions as total,
+            s.eleve__differents_users as eleve,
+            s.enseignant__differents_users as enseignant,
+            (s.perso_etab_non_ens__differents_users + s.perso_collec__differents_users) as autres,
+            se.eleve__total_pers as totalEleves,
+            se.enseignant__total_pers as totalEnseignants,
+            (se.perso_etab_non_ens__total_pers + se.perso_collec__total_pers) as totalAutres
         FROM etablissements as e
         INNER JOIN stats_services as s ON e.id = s.id_etablissement
         INNER JOIN stats_etabs as se ON e.id = se.id_etablissement
         WHERE
-            {$where}
-            s.id_service = :id_service
-        GROUP BY e.id
-        ORDER BY total desc
+            s.id_mois = :id_mois
+            AND se.id_mois = :id_mois
+            AND s.id_service = :id_service
+        ORDER BY eleve/eleve__total_pers desc
         LIMIT 20";
-    $args = ['id_service' => $intServiceId];
+    $args = ['id_mois' => $idMois, 'id_service' => $idService];
     $req = $pdo->prepare($sql);
     $req->execute($args);
 
@@ -104,10 +94,10 @@ function getTopData(Object &$pdo, string $serviceId, string $mois): array {
             'total' => $row['total'],
             'eleves' => intval($row['eleve']),
             'enseignants' => intval($row['enseignant']),
-            'autres' => intval($row['perso_etab_non_ens']) + intval($row['perso_collec']),
-            'totalEleves' => intval($row['eleve__differents_users']),
-            'totalEnseignants' => intval($row['enseignant__differents_users']),
-            'totalAutres' => intval($row['perso_etab_non_ens__differents_users']) + intval($row['perso_collec__differents_users']),
+            'autres' => intval($row['autres']),
+            'totalEleves' => intval($row['totalEleves']),
+            'totalEnseignants' => intval($row['totalEnseignants']),
+            'totalAutres' => intval($row['totalAutres']),
         ];
     }
 
@@ -225,12 +215,12 @@ function getStats(Object &$pdo, int $etabId, bool $serviceView, array $etabType,
     $sql =
         "SELECT
             {$select2}
-            SUM(s.parent__differents_users) as parent__differents_users,
-            SUM(s.eleve__differents_users) as eleve__differents_users,
-            SUM(s.enseignant__differents_users) as enseignant__differents_users,
-            SUM(s.perso_etab_non_ens__differents_users) as perso_etab_non_ens__differents_users,
-            SUM(s.perso_collec__differents_users) as perso_collec__differents_users,
-            SUM(s.tuteur_stage__differents_users) as tuteur_stage__differents_users
+            SUM(s.parent__total_pers) as parent__total_pers,
+            SUM(s.eleve__total_pers) as eleve__total_pers,
+            SUM(s.enseignant__total_pers) as enseignant__total_pers,
+            SUM(s.perso_etab_non_ens__total_pers) as perso_etab_non_ens__total_pers,
+            SUM(s.perso_collec__total_pers) as perso_collec__total_pers,
+            SUM(s.tuteur_stage__total_pers) as tuteur_stage__total_pers
         FROM stats_etabs as s
         INNER JOIN etablissements as etab ON etab.id = s.id_etablissement
         {$where2}

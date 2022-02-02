@@ -64,7 +64,7 @@ function main(): void {
         
         if (isset($_REQUEST["top"])) {
             $templateFile = 'top.html.twig';
-            $templateDate = ['table' => getTopData($pdo, $_REQUEST["serviceId"], $mois)];
+            $templateDate = ['table' => getTopData($pdo, intval($_REQUEST["serviceId"]), $mois)];
         } else {
             $templateFile = 'index.html.twig';
             $templateDate = [
