@@ -62,24 +62,18 @@ function main(): void {
             $serviceView = $_REQUEST["resultType"] !== VIEW_ETABS;
         }
         
-        if (isset($_REQUEST["top"])) {
-            $templateFile = 'top.html.twig';
-            $templateDate = ['table' => getTopData($pdo, intval($_REQUEST["serviceId"]), $mois)];
-        } else {
-            $templateFile = 'index.html.twig';
-            $templateDate = [
-                'showSimpleData' => $show_simple_data,
-                'etabReadOnly' => $etabReadOnly,
-                'viewService' => $serviceView,
-                'listMois' => $listMois,
-                'listTypesEtab' => getTypesEtablissements($pdo, $mois),
-                'listEtabs' => getEtablissements($pdo, $mois, $etabType),
-                'mois' => $mois,
-                'typesEtab' => $etabType,
-                'etab' => $etab,
-                'table' => getDataTable($pdo, $etab, $serviceView, $etabType, $mois, $show_simple_data),
-            ];
-        }
+        $templateDate = [
+            'showSimpleData' => $show_simple_data,
+            'etabReadOnly' => $etabReadOnly,
+            'viewService' => $serviceView,
+            'listMois' => $listMois,
+            'listTypesEtab' => getTypesEtablissements($pdo, $mois),
+            'listEtabs' => getEtablissements($pdo, $mois, $etabType),
+            'mois' => $mois,
+            'typesEtab' => $etabType,
+            'etab' => $etab,
+            'table' => getDataTable($pdo, $etab, $serviceView, $etabType, $mois, $show_simple_data),
+        ];
 
         //print_r($templateDate['listEtabs']);
 
@@ -90,7 +84,7 @@ function main(): void {
         // initialiser l'environnement Twig
         $twig = new Twig\Environment($loader);
         // load template
-        $template = $twig->load($templateFile);
+        $template = $twig->load('index.html.twig');
         // set template variables
         // render template
         echo $template->render($templateDate);

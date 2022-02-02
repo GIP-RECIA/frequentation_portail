@@ -34,6 +34,8 @@ function main(): void {
             'etabs' => getEtablissements($pdo, $mois, $etabType),
         ];
 
+        $pdo = null;
+
         header('Content-type: application/json');
         echo json_encode($res);
     } catch (Exception $e) {

@@ -39,7 +39,7 @@ $( document ).ready(function() {
 
     $('.top20').click (function () {
         $.ajax({
-            url: "./index.php?top",
+            url: "./top.php",
             type: "POST",
             async: false,
             data: ({
