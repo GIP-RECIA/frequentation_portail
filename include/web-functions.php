@@ -61,16 +61,12 @@ function getDataTable(PDO &$pdo, int $etabId, bool $serviceView, array $etabType
  * @return array Les données à afficher
  */
 function getTopData(Object &$pdo, int $idService, int $idMois): array {
-    $table = [];
-    $etabs = [];
-    $stats = [];
-
     $sql =
         "SELECT
             e.nom as nom,
             s.total_sessions as total,
-            s.eleve__differents_users as eleve,
-            s.enseignant__differents_users as enseignant,
+            s.eleve__differents_users as eleves,
+            s.enseignant__differents_users as enseignants,
             (s.perso_etab_non_ens__differents_users + s.perso_collec__differents_users) as autres,
             se.eleve__total_pers as totalEleves,
             se.enseignant__total_pers as totalEnseignants,
@@ -82,26 +78,30 @@ function getTopData(Object &$pdo, int $idService, int $idMois): array {
             s.id_mois = :id_mois
             AND se.id_mois = :id_mois
             AND s.id_service = :id_service
-        ORDER BY eleve/eleve__total_pers desc
+        ORDER BY eleves/eleve__total_pers desc
         LIMIT 20";
     $args = ['id_mois' => $idMois, 'id_service' => $idService];
     $req = $pdo->prepare($sql);
     $req->execute($args);
 
-    while ($row = $req->fetch(PDO::FETCH_ASSOC)) {
-        $table[] = [
-            'nom' => $row['nom'],
-            'total' => $row['total'],
-            'eleves' => intval($row['eleve']),
-            'enseignants' => intval($row['enseignant']),
-            'autres' => intval($row['autres']),
-            'totalEleves' => intval($row['totalEleves']),
-            'totalEnseignants' => intval($row['totalEnseignants']),
-            'totalAutres' => intval($row['totalAutres']),
-        ];
-    }
+    /**
+     * Converti tous les éléments d'un tableau en int sauf "nom"
+     *
+     * @param array $arr Le tableau a convertir
+     *
+     * @return array Le tableau converti
+     */
+    $func = function(array $arr): array {
+        foreach ($arr as $key => &$value) {
+            if ($key !== 'nom') {
+                $value = intval($value);
+            }
+        }
 
-    return $table;
+        return $arr;
+    };
+
+    return array_map($func, $req->fetchAll(PDO::FETCH_ASSOC));
 }
 
 /**
@@ -207,10 +207,7 @@ function getStats(Object &$pdo, int $etabId, bool $serviceView, array $etabType,
 
     $req = $pdo->prepare($sql);
     $req->execute($args);
-
-    while ($row = $req->fetch(PDO::FETCH_ASSOC)) {
-        $statsServices[] = $row;
-    }
+    $statsServices = $req->fetchAll(PDO::FETCH_ASSOC);
 
     $sql =
         "SELECT
@@ -307,7 +304,15 @@ function getTypesEtablissements(Object &$pdo, int $mois): array {
  */
 function getEtablissements(Object &$pdo, int $mois, array $etabTypes): array {
     $where = "";
-    $func = function(array $arr) {
+
+    /**
+     * Converti l'élément "id" du tableau en entier
+     *
+     * @param array $arr Le tableau a convertir
+     *
+     * @return array Le tableau résultat
+     */
+    $func = function(array $arr): array {
         $arr['id'] = intval($arr['id']);
 
         return $arr;
