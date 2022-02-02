@@ -148,7 +148,7 @@ table#result.no-tuteur .tuteur-elem {
     display: none;
 }
 
-table#result tr:hover {
+table.table-striped tbody tr:hover {
     background-color: #ddd;
 }
 
@@ -189,6 +189,10 @@ table#result tr:hover {
     text-align: right;
 }
 
+.topResult thead {
+    font-weight: bold;
+}
+
 .top20 {
     background-color: #25b2f3;
     color: white;
@@ -212,4 +216,8 @@ table#result tr:hover {
 .modal-dialog {
     max-width: 50%;
 }
+}
+
+#serviceTitle {
+    font-weight: bold;
 }

@@ -38,6 +38,7 @@ $( document ).ready(function() {
     const perType = { "sType": "percent" };
 
     $('.top20').click (function () {
+        const serviceTitle = $(this).parent().contents().get(2).nodeValue.trim();
         $.ajax({
             url: "./top.php",
             type: "POST",
@@ -47,6 +48,7 @@ $( document ).ready(function() {
                 mois: $mois.val()
             }),
             complete: function(data){
+                $('#serviceTitle').html(serviceTitle);
                 $('#topContent').html(data.responseText);
                 $('#topModal').modal('show');
             }
