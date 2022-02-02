@@ -50,6 +50,7 @@ $( document ).ready(function() {
     });
 
     $('#result').DataTable({
+        autoWidth: false,
         paging: false,
         ordering: true,
         dom: 'Bfrtip',
@@ -62,7 +63,7 @@ $( document ).ready(function() {
                             if (column == 0) {
                                 return data.replace(/<\/?span[^>]*>/g,'').replace('TOP','');
                             } else {
-                                return data.replace(/<br>/g,' - ');
+                                return data.replace(/<br>/g,' - ').replace(/ /g, '');
                             }
                         }
                     }
