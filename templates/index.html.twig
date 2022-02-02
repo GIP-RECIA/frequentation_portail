@@ -22,16 +22,23 @@
         <link rel="stylesheet" href="./assets/css/styles.css"/>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
-                const checkbox = document.querySelector('input[name="switch1"]');
+                const table = document.getElementById("result");
 
-                checkbox.addEventListener('change', function () {
-                    const result = document.getElementById("result");
-                    if (checkbox.checked) {
-                        result.classList.replace("population", "ratio");
-                    } else {
-                        result.classList.replace("ratio", "population");
-                    }
-                });
+                document.querySelectorAll('.switch-auto').forEach(
+                    currentValue => currentValue.addEventListener('change', function() {
+                        const val1 = this.dataset.val1;
+                        const val2 = this.dataset.val2;
+                        if (this.checked) {
+                            table.classList.replace(val1, val2);
+                        } else {
+                            table.classList.replace(val2, val1);
+                        }
+                    })
+                )
+
+                document.querySelectorAll('.sel-col').forEach(
+                    elem => table.classList.add(elem.checked ? elem.dataset.val2 : elem.dataset.val1)
+                )
             });
         </script>
     </head>
@@ -115,9 +122,53 @@
                 </div>
                 <div class="col-6">
                     <div class="custom-control custom-switch text-right mb-3">
-                        <input type="checkbox" class="custom-control-input" id="customSwitch1" name="switch1">
+                        <input type="checkbox" class="custom-control-input switch-auto" id="customSwitch1" name="switch1" data-val1="population" data-val2="ratio">
                         <label class="custom-control-label" for="customSwitch1">Voir le ratio des visites par rapport aux
                             utilisateurs potentiels</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-2">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchParent" name="parent"
+                            checked data-val1="no-parent" data-val2="parent">
+                        <label class="custom-control-label" for="customSwitchParent">Voir les parents</label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchEleve" name="eleve"
+                            checked data-val1="no-eleve" data-val2="eleve">
+                        <label class="custom-control-label" for="customSwitchEleve">Voir les élèves</label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchEnseignant" name="enseignant"
+                            checked data-val1="no-enseignant" data-val2="enseignant">
+                        <label class="custom-control-label" for="customSwitchEnseignant">Voir les enseignants</label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchPersNonEns" name="pers-non-ens"
+                            data-val1="no-pers-non-ens" data-val2="pers-non-ens">
+                        <label class="custom-control-label" for="customSwitchPersNonEns">Voir le personnel d'établissement non enseignant</label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchPersCol" name="pers-col"
+                            data-val1="no-pers-col" data-val2="pers-col">
+                        <label class="custom-control-label" for="customSwitchPersCol">Voir le personnel de collectivité</label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchTuteur" name="tuteur"
+                            data-val1="no-tuteur" data-val2="tuteur">
+                        <label class="custom-control-label" for="customSwitchTuteur">Voir les tuteurs de stages</label>
                     </div>
                 </div>
             </div>
@@ -177,8 +228,8 @@
             });
 
             $('#result').DataTable({
-                "paging": false,
-                "ordering": true,
+                paging: false,
+                ordering: true,
                 dom: 'Bfrtip',
                 buttons: [
                     {
@@ -196,7 +247,20 @@
                         }
                     }
                 ],
-                "aoColumns": [
+                columnDefs: [
+                    {
+                        targets: "_all",
+                        className: 'dt-body-right'
+                    }, {
+                        targets: 0,
+                        className: 'dt-body-left'
+                    },
+                    {
+                        targets: [1,2,3,4, 5,6,7,8,9,10],
+                        render: $.fn.dataTable.render.number(' ', '.', 0, '')
+                    }
+                ],
+                aoColumns: [
                     null, null, null, null, null,
                     null, null, null, null, null, null,
                     perType, perType, perType, perType, perType, perType,

@@ -138,7 +138,13 @@ table#result tbody tr td:first-child {
 }
 
 table#result.population .ratio-elem,
-table#result.ratio .population-elem {
+table#result.ratio .population-elem,
+table#result.no-parent .parent-elem,
+table#result.no-eleve .eleve-elem,
+table#result.no-enseignant .enseignant-elem,
+table#result.no-pers-non-ens .pers-non-ens-elem,
+table#result.no-pers-col .pers-col-elem,
+table#result.no-tuteur .tuteur-elem {
     display: none;
 }
 
