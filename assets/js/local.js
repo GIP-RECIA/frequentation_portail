@@ -30,6 +30,11 @@ $( document ).ready(function() {
         return jQuery.fn.dataTableExt.oSort["percent-asc"](y, x);
     };
 
+    const $mois = $('#mois');
+    const $etab = $('#etab');
+    const $etabType = $('#etabType');
+    let reload = true;
+
     const perType = { "sType": "percent" };
 
     $('.top20').click (function () {
@@ -39,15 +44,46 @@ $( document ).ready(function() {
             async: false,
             data: ({
                 serviceId: $(this).attr('data-serviceid'),
-                mois: $('#mois').val()
+                mois: $mois.val()
             }),
             complete: function(data){
                 $('#topContent').html(data.responseText);
-                console.log(data.responseText);
                 $('#topModal').modal('show');
             }
         });
     });
+
+    /**
+     * Système de rechargement des listes dynamique
+     */
+    const reloadFilters = function () {
+        if (reload) {
+            $.ajax({
+                url: "./reloadFilters.php",
+                type: "POST",
+                async: false,
+                data: ({
+                    mois: $mois.val(),
+                    etabType: $etabType.val()
+                }),
+                complete: function(data){
+                    const actualEtab = $etab.val();
+                    const actualType = $etabType.val();
+                    $etab.empty().append(new Option("Tous les établissements", "-1", true, actualEtab == -1))
+                    $etabType.empty();
+                    data.responseJSON['etabs'].forEach((val) => {
+                        $etab.append(new Option(val['nom'], val['id'], false, actualEtab == val['id']))
+                    });
+                    data.responseJSON['types'].forEach((val) => {
+                        $etabType.append(new Option(val['nom'], val['id'], false, actualType.includes(val['id'])))
+                    });
+                }
+            });
+        }
+    };
+
+    $mois.change(reloadFilters);
+    $etabType.change(reloadFilters);
 
     $('#result').DataTable({
         autoWidth: false,
@@ -63,7 +99,7 @@ $( document ).ready(function() {
                             if (column == 0) {
                                 return data.replace(/<\/?span[^>]*>/g,'').replace('TOP','');
                             } else {
-                                return data.replace(/<br>/g,' - ').replace(/ /g, '');
+                                return data.replace(/( |&nbsp;|<\/?i>)/g, '').replace(/<br>/g,' - ');
                             }
                         }
                     }
@@ -98,14 +134,15 @@ $( document ).ready(function() {
     });
 
     $('#reset').click (function () {
-        $('#etabType').val(null);
-        $('#etab').val(-1);
-        $('#mois').val(-1);
+        reload = false;
+        $etabType.val(null);
+        $etab.val(-1);
+        $mois.val($('#mois option:eq(0)')[0].value);
         $(location).attr('href','/');
     });
 
-    $('#etab').select2({
-        disabled: $('#etab').data('disabled')
+    $etab.select2({
+        disabled: $etab.data('disabled')
     });
 
     // Mutliple select Etablissement

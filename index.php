@@ -95,17 +95,7 @@ function main(): void {
         // render template
         echo $template->render($templateDate);
     } catch (Exception $e) {
-        http_response_code(500);
-        echo "Server Error";
-
-        // Si on est pas en prod, on affiche l'erreur, sinon on la log
-        if (array_key_exists('env', $configs) && $configs['env'] !== "prod") {
-            $trace = $e->getTrace();
-            echo "<br>".$e->getMessage();
-            echo "<br>Fichier : ".$trace[0]['file'].":".$trace[0]['line'];
-        } else {
-            error_log($e->getMessage());
-        }
+        showException($e, $configs['env']);
     }
 }
 

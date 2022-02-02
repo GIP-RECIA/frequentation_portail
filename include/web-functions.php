@@ -374,3 +374,23 @@ function generateInClauseAndArgs(string $field, array $arrayElem, string $prefix
 
     return [$res.")", $args];
 }
+
+/**
+ * Affiche une exception comme il faut en fonction de l'env
+ *
+ * @param Exception $e   L'exception à afficher
+ * @param string    $env L'env (prod, dev, ...)
+ */
+function showException(Exception $e, string $env = "prod"): void {
+    http_response_code(500);
+    echo "Server Error";
+
+    // Si on est pas en prod, on affiche l'erreur, sinon on la log
+    if ($env !== null && $env !== "prod") {
+        $trace = $e->getTrace();
+        echo "<br>".$e->getMessage();
+        echo "<br>Fichier : ".$trace[0]['file'].":".$trace[0]['line'];
+    } else {
+        error_log($e->getMessage());
+    }
+}
