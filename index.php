@@ -8,7 +8,7 @@ require './include/web-functions.php';
 const VIEW_SERVICES = "services";
 const VIEW_ETABS = "etabs";
 
-function main() {
+function main(): void {
     try {
         $configs = include('./include/config.php');
         

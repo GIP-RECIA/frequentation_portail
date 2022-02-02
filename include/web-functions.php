@@ -3,7 +3,7 @@
 /**
  * Retourne les données du tableau a afficher
  *
- * @param Object     $pdo            L'objet pdo
+ * @param PDO        $pdo            L'objet pdo
  * @param int        $etabId         L'identifiant de l'établissement sélectionné ou -1
  * @param bool       $serviceView    Un booléen pour savoir si l'on attends la vue service ou l'autre
  * @param array<int> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, [] pour tous
@@ -12,7 +12,7 @@
  *
  * @return array Les données du tableau
  */
-function getDataTable(Object &$pdo, int $etabId, bool $serviceView, array $etabType, int $mois, bool $showSimpleData) {
+function getDataTable(PDO &$pdo, int $etabId, bool $serviceView, array $etabType, int $mois, bool $showSimpleData): array {
     $stats = getStats($pdo, $etabId, $serviceView, $etabType, $mois);
     $statsServices = $stats['statsServices'];
     $statsEtabs = $stats['statsEtabs'];
@@ -51,7 +51,6 @@ function getDataTable(Object &$pdo, int $etabId, bool $serviceView, array $etabT
     return $table;
 }
 
-// TODO:
 /**
  * Génère les données de la popup top
  *
@@ -61,7 +60,7 @@ function getDataTable(Object &$pdo, int $etabId, bool $serviceView, array $etabT
  *
  * @return array Les données à afficher
  */
-function getTopData(Object &$pdo, string $serviceId, string $mois) {
+function getTopData(Object &$pdo, string $serviceId, string $mois): array {
     $table = [];
     $etabs = [];
     $stats = [];
@@ -122,11 +121,11 @@ function getTopData(Object &$pdo, string $serviceId, string $mois) {
  * @param int    $mois  L'identifiant du mois sur lequel on souhaite filtrer
  * @param string $siren Le siren de l'établissement
  *
- * @param int|bool L'id de l'établissement ou false si non trouvé
+ * @param int L'id de l'établissement
  *
  * @param Exception Si on ne trouve pas l'établissement
  */
-function get_etablissement_id_by_siren(Object &$pdo, int $mois, string $siren) {
+function get_etablissement_id_by_siren(Object &$pdo, int $mois, string $siren): int {
     $req = $pdo->prepare("
         SELECT e.id as id
         FROM etablissements as e
@@ -152,7 +151,7 @@ function get_etablissement_id_by_siren(Object &$pdo, int $mois, string $siren) {
  *
  * @return array Le tableau des résultats
  */
-function getStats(Object &$pdo, int $etabId, bool $serviceView, array $etabType, int $mois) {
+function getStats(Object &$pdo, int $etabId, bool $serviceView, array $etabType, int $mois): array {
     $where = ["id_mois = :id_mois"];
     $statsServices = [];
     $statsEtabs = [];
@@ -260,7 +259,7 @@ function getStats(Object &$pdo, int $etabId, bool $serviceView, array $etabType,
  *
  * @return array<string> La liste des mois
  */
-function getListMois(Object &$pdo, string $siren = null) {
+function getListMois(Object &$pdo, string $siren = null): array {
     $sql = "";
 
     if (empty($siren)) {
@@ -291,8 +290,7 @@ function getListMois(Object &$pdo, string $siren = null) {
  *
  * @return array<string> Un tableau de types d'établissements
  */
-function getTypesEtablissements(Object &$pdo, int $mois)
-{
+function getTypesEtablissements(Object &$pdo, int $mois): array {
     // On ne récupère que les types d'établissement du mois actuel
     //  au cas où il y'aurait eu des types différents lors d'un autre mois
     $req = $pdo->prepare("
@@ -317,7 +315,7 @@ function getTypesEtablissements(Object &$pdo, int $mois)
  *
  * @return array<id, string> Un tableau d'établissements
  */
-function getEtablissements(Object &$pdo, int $mois, array $etabTypes) {
+function getEtablissements(Object &$pdo, int $mois, array $etabTypes): array {
     $where = "";
     $func = function(array $arr) {
         $arr['id'] = intval($arr['id']);
@@ -347,7 +345,7 @@ function getEtablissements(Object &$pdo, int $mois, array $etabTypes) {
  *
  * @return string La clause in sous forme de string paramétré
  */
-function generateInClause(string $field, array $arrayElem) {
+function generateInClause(string $field, array $arrayElem): string {
     return "{$field} IN (".str_repeat('?,', count($arrayElem) - 1) . "?)";
 }
 
@@ -360,7 +358,7 @@ function generateInClause(string $field, array $arrayElem) {
  *
  * @return array En 0 la clause in sous forme de string paramétré et en 1 les arguments
  */
-function generateInClauseAndArgs(string $field, array $arrayElem, string $prefix = "p") {
+function generateInClauseAndArgs(string $field, array $arrayElem, string $prefix = "p"): array {
     $res = "{$field} IN (";
     $first = true;
     $cpt = 0;

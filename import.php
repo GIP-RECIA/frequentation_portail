@@ -3,7 +3,7 @@
 require './include/db.php';
 require './include/import-functions.php';
 
-function main(array $argv) {
+function main(array $argv): void {
     try {
         $configs = include('./include/config.php');
         

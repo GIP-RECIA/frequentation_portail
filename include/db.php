@@ -7,7 +7,7 @@
  *
  * @return Object L'objet pdo créé
  */
-function getNewPdo($conf) {
+function getNewPdo($conf): Object {
     $pdo = new PDO(
         "mysql:host={$conf['host']};port={$conf['port']};dbname={$conf['dbName']};charset=utf8",
         $conf['user'],

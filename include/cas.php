@@ -5,7 +5,7 @@
  *
  * @param array $configCas La configuration du cas
  */
-function casInit(array $configCas) {
+function casInit(array $configCas): void {
     $cas_host = $configCas["host"];
     $cas_port = $configCas["port"];
     $cas_context = $configCas["context"];
@@ -27,7 +27,7 @@ function casInit(array $configCas) {
 /**
  * Lance la déconnexion du CAS
  */
-function casLogout() {
+function casLogout(): void {
     phpCAS::logout();
 }
 
@@ -35,7 +35,9 @@ function casLogout() {
  * Récupère un attribut CAS dans la session
  *
  * @param string $attributeName Le nom de l'attribut a récupérer
+ *
+ * @param string La valeur récupérée
  */
-function getCasAttribute(string $attributeName) {
+function getCasAttribute(string $attributeName): ?string {
     return $_SESSION['phpCAS']['attributes'][$attributeName];
 }

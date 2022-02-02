@@ -13,7 +13,7 @@ const TUTEUR = "Tuteur de stage";
  * @param Object $pdo    L'objet pdo
  * @param string $folder Le dossier des imports
  */
-function importDataEtabs(Object &$pdo, string $folder) {
+function importDataEtabs(Object &$pdo, string $folder): void {
     $arrIdServiceFromName = loadServices($pdo);
     $arrTypes = loadTypes($pdo);
     $reverseArrTypes = array_flip($arrTypes);
@@ -194,7 +194,7 @@ function importDataEtabs(Object &$pdo, string $folder) {
  * @param Object $reqInsertService     Une requête d'insertion préparée pour les donnée d'un service
  * @param Object $reqInsertEtab        Une requête d'insertion préparée pour les donnée de profils globaux
  */
-function importDataEtab(Object &$pdo, array &$arrIdServiceFromName, $etab, $f, $idMois, &$reqInsertService, &$reqInsertEtab) {
+function importDataEtab(Object &$pdo, array &$arrIdServiceFromName, $etab, $f, $idMois, &$reqInsertService, &$reqInsertEtab): void {
     $xml = simplexml_load_file($f);
     $profils = $xml->xpath('/Etablissement/ProfilsGlobaux/ProfilGlobal');
     $users = [];
@@ -262,9 +262,9 @@ function importDataEtab(Object &$pdo, array &$arrIdServiceFromName, $etab, $f, $
  *
  * @param Object $pdo L'objet pdo
  *
- * @param array La liste de tous les services
+ * @return array Le tableau des services
  */
-function loadServices(Object &$pdo) {
+function loadServices(Object &$pdo): array {
     $req = $pdo->prepare("SELECT id, nom FROM services");
     $req->execute();
     $arrIdServiceFromName = [];
@@ -281,9 +281,9 @@ function loadServices(Object &$pdo) {
  *
  * @param Object $pdo L'objet pdo
  *
- * @param array La liste de tous les types
+ * @return array Le tableau des types
  */
-function loadTypes(Object &$pdo) {
+function loadTypes(Object &$pdo): array {
     $req = $pdo->prepare("SELECT id, nom FROM types");
     $req->execute();
     $arrTypes = [];
@@ -303,7 +303,7 @@ function loadTypes(Object &$pdo) {
  *
  * @return int L'identifiant du service
  */
-function getIdServiceFromName(Object &$pdo, array &$arrIdServiceFromName, $serviceName) {
+function getIdServiceFromName(Object &$pdo, array &$arrIdServiceFromName, $serviceName): int {
     $serviceName = addslashes($serviceName);
 
     if (array_key_exists($serviceName, $arrIdServiceFromName)) {
@@ -337,6 +337,6 @@ function getIdServiceFromName(Object &$pdo, array &$arrIdServiceFromName, $servi
  *
  * @param string $s Le message à afficher
  */
-function vlog(string $s) {
+function vlog(string $s): void {
     echo $s."\n";
 }
