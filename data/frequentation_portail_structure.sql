@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS `etablissements` (
   `id_type` int(11) NOT NULL,
   `nom` varchar(255) NOT NULL,
   `departement` int(11) NOT NULL,
-  `siren` bigint(14) NOT NULL,
+  `siren` varchar(15) NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`id_type`) REFERENCES `types` (`id`),
   CONSTRAINT UQ_etab UNIQUE (siren, nom, departement, id_type)
