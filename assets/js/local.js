@@ -1,16 +1,55 @@
+function storageAvailable(type) {
+    try {
+        var storage = window[type],
+            x = '__storage_test__';
+        storage.setItem(x, x);
+        storage.removeItem(x);
+        return true;
+    }
+    catch(e) {
+        return e instanceof DOMException && (
+            // everything except Firefox
+            e.code === 22 ||
+            // Firefox
+            e.code === 1014 ||
+            // test name field too, because code might not be present
+            // everything except Firefox
+            e.name === 'QuotaExceededError' ||
+            // Firefox
+            e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+            // acknowledge QuotaExceededError only if there's something already stored
+            storage.length !== 0;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const table = document.getElementById("result");
 
     document.querySelectorAll('.switch-auto').forEach(
-        currentValue => currentValue.addEventListener('change', function() {
-            const val1 = this.dataset.val1;
-            const val2 = this.dataset.val2;
-            if (this.checked) {
-                table.classList.replace(val1, val2);
-            } else {
-                table.classList.replace(val2, val1);
+        (currentSwitch) => {
+            if (storageAvailable('sessionStorage')) {
+                let check = sessionStorage.getItem(currentSwitch.id) == 'true';
+                if (check == null) {
+                    sessionStorage.setItem(currentSwitch.id, currentSwitch.checked);
+                } else {
+                    currentSwitch.checked = check;
+                }
             }
-        })
+            table.classList.add(currentSwitch.checked === true ? currentSwitch.dataset.val2 : currentSwitch.dataset.val1);
+            currentSwitch.addEventListener('change', function() {
+                const val1 = this.dataset.val1, val2 = this.dataset.val2;
+
+                if (this.checked) {
+                    table.classList.replace(val1, val2);
+                } else {
+                    table.classList.replace(val2, val1);
+                }
+
+                if (storageAvailable('sessionStorage')) {
+                    sessionStorage.setItem(this.id, this.checked);
+                }
+            });
+        }
     )
 
     document.querySelectorAll('.sel-col').forEach(
