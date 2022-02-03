@@ -10,10 +10,11 @@ const TUTEUR = "Tuteur de stage";
 /**
  * Import des données en bdd pour tous les établissements
  *
- * @param Object $pdo    L'objet pdo
- * @param string $folder Le dossier des imports
+ * @param Object $pdo     L'objet pdo
+ * @param string $folder  Le dossier des imports
+ * @param bool   $verbose Log verbeux ou non
  */
-function importDataEtabs(Object &$pdo, string $folder): void {
+function importDataEtabs(Object &$pdo, string $folder, bool $verbose): void {
     $arrIdServiceFromName = loadServices($pdo);
     $arrTypes = loadTypes($pdo);
     $reverseArrTypes = array_flip($arrTypes);
@@ -30,11 +31,11 @@ function importDataEtabs(Object &$pdo, string $folder): void {
     }
 
     if(!is_numeric($annee)) {
-        die("Erreur sur l'année récupérée ($annee)");
+        throw new Exception("Erreur sur l'année récupérée ($annee)");
     }
 
     if(!is_numeric($mois)) {
-        die("Erreur sur le mois récupéré ($mois)");
+        throw new Exception("Erreur sur le mois récupéré ($mois)");
     }
 
     $arrMois = ['mois' => intval($mois), 'annee' => intval($annee)];
@@ -64,6 +65,7 @@ function importDataEtabs(Object &$pdo, string $folder): void {
     $reqGetEtab = $pdo->prepare("SELECT id FROM etablissements WHERE nom = :name AND departement = :departement AND id_type = :id_type AND siren = :siren");
     $reqInsertEtab = $pdo->prepare("INSERT INTO etablissements (nom, departement, siren, id_type) VALUES (:name, :departement, :siren, :id_type)");
 
+    // Première boucle pour gérer les informations des établissements
     foreach ($etabs1 as $etab) {
         $etab = current($etab->attributes());
 
@@ -91,26 +93,34 @@ function importDataEtabs(Object &$pdo, string $folder): void {
         }
 
         if($id === null) {
-            die("Erreur impossible de récupérer l'établissement ayant le siren {$etab['siren']}");
+            throw new Exception("Erreur impossible de récupérer l'établissement ayant le siren {$etab['siren']}");
         }
 
         $arrEtabs[$etab['siren']] = array_merge($etab, ['id' => $id]);
     }
 
+    // seconde boucle qui permet d'ajouter les stats du nombre de comptes pendant le mois aux établissements
     foreach ($etabs2 as $etab) {
         $etabAttr = current($etab->attributes());
 
         if (!array_key_exists($etabAttr['siren'], $arrEtabs)) {
-            die("Erreur impossible de récupérer l'établissement ayant le siren {$etab['siren']} dans le tableau des établissements");
+            vlog("WARNING : Établissement ignoré car absent du fichier liste_etablissements.xml : {$etab['siren']} - {$etab['name']}");
+        } else {
+            $users = [];
+    
+            foreach ($etab->ProfilsGlobaux->ProfilGlobal as $profil) {
+                $users[(string)$profil['name']] = $profil;
+            }
+            
+            $arrEtabs[$etabAttr['siren']]['users'] = $users;
         }
+    }
 
-        $users = [];
-
-        foreach ($etab->ProfilsGlobaux->ProfilGlobal as $profil) {
-            $users[(string)$profil['name']] = $profil;
+    foreach ($arrEtabs as $etab) {
+        if (!array_key_exists('users', $etab)) {
+            vlog("WARNING : Établissement ignoré car absent du fichier etablissements_etat_lieux.xml : {$etab['siren']} - {$etab['name']}");
+            unset($arrEtabs[$etab['siren']]);
         }
-        
-        $arrEtabs[$etabAttr['siren']]['users'] = $users;
     }
 
     $sql = "INSERT INTO stats_services (
@@ -135,7 +145,7 @@ function importDataEtabs(Object &$pdo, string $folder): void {
     $reqInsertService = $pdo->prepare($sql);
 
     if ($reqInsertService === false) {
-        die("Erreur lors de la préparation de la requête sur le service");
+        throw new Exception("Erreur lors de la préparation de la requête sur le service");
     }
 
     $sql = "INSERT INTO stats_etabs (
@@ -172,12 +182,14 @@ function importDataEtabs(Object &$pdo, string $folder): void {
     $reqInsertEtab = $pdo->prepare($sql);
 
     if ($reqInsertEtab === false) {
-        die("Erreur lors de la préparation de la requête sur l'établissement");
+        throw new Exception("Erreur lors de la préparation de la requête sur l'établissement");
     }
 
     foreach ($arrEtabs as $etab) {
         if (file_exists("{$folder}/mois_{$etab['siren']}.xml")) {
-            vlog("Etablissement {$etab['name']}");
+            if ($verbose) {
+                vlog("Etablissement {$etab['name']}");
+            }
             importDataEtab($pdo, $arrIdServiceFromName, $etab, "{$folder}/mois_{$etab['siren']}.xml", $idMois, $reqInsertService, $reqInsertEtab);
         }
     }

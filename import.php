@@ -8,15 +8,16 @@ function main(array $argv): void {
         $configs = include('./include/config.php');
         
         if (!isset($argv)) {
-            die;
+            throw new Exception("Aucun argument spécifié");
         }
         
         $pdo = getNewPdo($configs['db']);
         
-        $options = getopt('d:c:');
+        $options = getopt('d:c:v');
         
         $date = isset($options['d']) ? $options['d'] : null;
         $chemin = isset($options['c']) ? $options['c'] : $configs['importDir'];
+        $verbose = isset($options['v']);
         $folder = date('Y/m');
         $path = '';
         
@@ -26,7 +27,7 @@ function main(array $argv): void {
         
         if ($chemin !== null) {
             if (!is_dir($chemin)) {
-                die("Le chemin précisé n'existe pas\n");
+                throw new Exception("Le chemin précisé n'existe pas");
             }
         
             $path = is_dir($chemin) ? $chemin : $path;
@@ -41,18 +42,18 @@ function main(array $argv): void {
         }
         
         if(!is_dir($path . $folder)) {
-            die("Le dossier n'existe pas {$path}{$folder}\n");
+            throw new Exception("Le dossier n'existe pas {$path}{$folder}");
         }
         
         vlog("Démarrage de l'import");
-        importDataEtabs($pdo, $path.$folder);
+        importDataEtabs($pdo, $path.$folder, $verbose);
         vlog("Fin de l'import");
         
         $pdo = null;
     } catch (PDOException $e) {
         die("Erreur PDO : ".$e->getMessage());
     } catch (Exception $e) {
-        die("Erreur : ".$e->getMessage());
+        die("Erreur : ".$e->getMessage()."\n");
     }
 }
 
