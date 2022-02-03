@@ -95,6 +95,7 @@ Il est possible, mais pas obligatoire, de définir l'emplacement des fichiers d'
 
 * `-d` pour **date**, optionnel au format YYYY/MM
 * `-c` pour **chemin**, optionnel en format absolu
+* `-v` pour avoir des logs plus verbeux
 Des messages d’erreurs s’afficheront si le dossier n’existe pas.
 
 ### Traitement automatique
