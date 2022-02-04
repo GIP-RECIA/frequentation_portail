@@ -143,7 +143,8 @@ $( document ).ready(function() {
                                 return data.replace(/( |&nbsp;|<\/?i>)/g, '').replace(/<br>/g,' - ');
                             }
                         }
-                    }
+                    },
+                    columns: ':visible'
                 }
             }
         ],
