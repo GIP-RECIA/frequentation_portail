@@ -346,12 +346,11 @@ function loadTypes(Object &$pdo): array {
  *
  * @param Object $pdo                  L'objet pdo
  * @param array  $arrIdServiceFromName Le cache de relation name => id
+ * @param string $serviceName          Le nom du service
  *
  * @return int L'identifiant du service
  */
-function getIdServiceFromName(Object &$pdo, array &$arrIdServiceFromName, $serviceName): int {
-    $serviceName = addslashes($serviceName);
-
+function getIdServiceFromName(Object &$pdo, array &$arrIdServiceFromName, string $serviceName): int {
     if (array_key_exists($serviceName, $arrIdServiceFromName)) {
         return $arrIdServiceFromName[$serviceName];
     }
