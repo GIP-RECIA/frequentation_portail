@@ -188,8 +188,11 @@ $( document ).ready(function() {
         disabled: $etab.data('disabled')
     });
 
-    // Mutliple select Etablissement
-    $('.js-select2-mutliple').select2({
-        placeholder: "Tous le types"
+    $('.js-select2-mutliple.type').select2({
+        placeholder: "Tous les types"
+    });
+
+    $('.js-select2-mutliple.type2').select2({
+        placeholder: "Tous les types avancés"
     });
 })

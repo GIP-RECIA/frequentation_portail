@@ -281,15 +281,47 @@ function getTypesEtablissements(Object &$pdo, int $mois): array {
 }
 
 /**
- * Retourne la liste des établissements en fonction du/des types d'établissement si ils sont présents
+ * Retourne la liste des types2 d'établissement
  *
  * @param Object     $pdo       L'objet pdo
  * @param int        $mois      L'identifiant du mois
  * @param array<int> $etabTypes Les types d'établissement à retourner
  *
+ * @return array<string> Un tableau de types2 d'établissements
+ */
+function getTypes2Etablissements(Object &$pdo, int $mois, array $etabTypes): array {
+    $where = "";
+    
+    if (count($etabTypes) !== 0) {
+        $where = "AND ".generateInClause("e.id_type", $etabTypes);
+    }
+
+    // On ne récupère que les types2 d'établissement du mois actuel et des types actuel
+    //  au cas où il y'aurait eu des types2 différents lors d'un autre mois
+    $req = $pdo->prepare("
+        SELECT t.id as id, t.nom as nom
+        FROM types2 as t
+        INNER JOIN etablissements as e ON e.id_type2 = t.id
+        INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
+        WHERE se.id_mois = ? ${where}
+        GROUP BY t.id
+        ORDER BY t.nom asc");
+    $req->execute(array_merge([$mois], $etabTypes));
+
+    return $req->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Retourne la liste des établissements en fonction du/des types d'établissement si ils sont présents
+ *
+ * @param Object     $pdo       L'objet pdo
+ * @param int        $mois      L'identifiant du mois
+ * @param array<int> $etabTypes Les types d'établissement à retourner
+ * @param array<int> $etabTypes2 Les types d'établissement avancé à retourner
+ *
  * @return array<id, string> Un tableau d'établissements
  */
-function getEtablissements(Object &$pdo, int $mois, array $etabTypes): array {
+function getEtablissements(Object &$pdo, int $mois, array $etabTypes, array $etabTypes2): array {
     $where = "";
 
     /**
@@ -308,6 +340,10 @@ function getEtablissements(Object &$pdo, int $mois, array $etabTypes): array {
     if (count($etabTypes) !== 0) {
         $where = "AND ".generateInClause("e.id_type", $etabTypes);
     }
+
+    if (count($etabTypes2) !== 0) {
+        $where .= " AND ".generateInClause("e.id_type2", $etabTypes2);
+    }
     
     $req = $pdo->prepare("
         SELECT e.id as id, CONCAT(IFNULL(e.uai, '?'), ' - ', e.nom) as nom
@@ -315,7 +351,7 @@ function getEtablissements(Object &$pdo, int $mois, array $etabTypes): array {
         INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
         WHERE se.id_mois = ? ${where}
         ORDER BY e.nom");
-    $req->execute(array_merge([$mois], $etabTypes));
+    $req->execute(array_merge([$mois], $etabTypes, $etabTypes2));
 
     return array_map($func, $req->fetchAll(PDO::FETCH_ASSOC));
 }

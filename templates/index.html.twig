@@ -56,10 +56,19 @@
                         {% if not etabReadOnly %}
                         <div class="form-group mr-2 mb-3">
                             <label for="etabType" class="sr-only">catégorie</label>
-                            <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple"
-                                    multiple="multiple" style="width:300px;">
+                            <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple type"
+                                    multiple="multiple" style="width:150px;">
                                 {% for forTypeEtab in listTypesEtab %}
                                     <option {% if forTypeEtab.id in typesEtab %}selected {% endif %}value="{{ forTypeEtab.id }}">{{ forTypeEtab.nom }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group mr-2 mb-3">
+                            <label for="etabType2" class="sr-only">catégorie avancée</label>
+                            <select id="etabType2" name="etabType2[]" class="form-control js-select2-mutliple type2"
+                                    multiple="multiple" style="width:450px;">
+                                {% for forType2Etab in listTypes2Etab %}
+                                    <option {% if forType2Etab.id in types2Etab %}selected {% endif %}value="{{ forType2Etab.id }}">{{ forType2Etab.nom }}</option>
                                 {% endfor %}
                             </select>
                         </div>

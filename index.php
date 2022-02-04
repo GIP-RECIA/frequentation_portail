@@ -47,11 +47,16 @@ function main(): void {
         $etab = -1;
         $resultType = VIEW_SERVICES;
         $etabType = [];
+        $etabType2 = [];
         $serviceView = true;
         
         
         if (isset($_REQUEST["etabType"])) {
             $etabType = array_map('intval', $_REQUEST["etabType"]);
+        }
+        
+        if (isset($_REQUEST["etabType2"])) {
+            $etabType2 = array_map('intval', $_REQUEST["etabType2"]);
         }
         
         if (isset($_REQUEST["etab"])) {
@@ -68,9 +73,11 @@ function main(): void {
             'viewService' => $serviceView,
             'listMois' => $listMois,
             'listTypesEtab' => getTypesEtablissements($pdo, $mois),
-            'listEtabs' => getEtablissements($pdo, $mois, $etabType),
+            'listTypes2Etab' => getTypes2Etablissements($pdo, $mois, $etabType),
+            'listEtabs' => getEtablissements($pdo, $mois, $etabType, $etabType2),
             'mois' => $mois,
             'typesEtab' => $etabType,
+            'types2Etab' => $etabType2,
             'etab' => $etab,
             'table' => getDataTable($pdo, $etab, $serviceView, $etabType, $mois, $show_simple_data),
         ];
