@@ -46,7 +46,7 @@ function main(array $argv): void {
         }
         
         vlog("Démarrage de l'import");
-        importDataEtabs($pdo, $path.$folder, $verbose);
+        importDataEtabs($pdo, $path.$folder, $verbose, $configs['env']);
         vlog("Fin de l'import");
         
         $pdo = null;

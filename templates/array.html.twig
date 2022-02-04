@@ -1,14 +1,16 @@
 {% import "macro.html.twig" as macro %}
 <div class="table-responsive">
-    <table id="result" class="table table-sm table-striped">
+    <table id="result" class="table table-sm table-striped{% if viewService %} view-service{% endif %}">
         <thead class="thead-dark">
             <tr>
+                <th class="uai"></th>
                 <th></th>
                 <th colspan="4">Visiteurs - Visites</th>
                 <th colspan="6" class="population-elem">Populations</th>
                 <th colspan="6" class="ratio-elem">Ratio par rapport aux utilisateurs potentiels</th>
             </tr>
             <tr>
+                <th class="uai">uai</th>
                 <th>{% if viewService %}Service{% else %}Établissement{% endif %}</th>
                 <th>Au plus quatre fois</th>
                 <th>Au moins cinq fois</th>
@@ -31,6 +33,7 @@
         <tbody>
             {% for line in table %}
             <tr>
+                <td class="uai">{{ line.uai }}</td>
                 <td>
                     {% if viewService and not showSimpleData %}<span class="top20" data-serviceid="{{ line.id }}" class="float-right">TOP</span>{% endif %}
                     {{ line.nom }}

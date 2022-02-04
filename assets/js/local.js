@@ -131,6 +131,7 @@ $( document ).ready(function() {
         autoWidth: false,
         paging: false,
         ordering: true,
+        order: [[1, "asc"]],
         dom: 'Bfrtip',
         buttons: [
             {
@@ -138,11 +139,13 @@ $( document ).ready(function() {
                 exportOptions: {
                     format: {
                         body: function (data, row, column, node) {
-                            if (column == 0) {
-                                return data.replace(/<\/?span[^>]*>/g,'').replace('TOP','');
-                            } else {
+                            const startColumn = document.getElementById("result").classList.contains('view-service')? 0 : 1;
+
+                            if (column > startColumn) {
                                 return data.replace(/( |&nbsp;|<\/?i>)/g, '').replace(/<br>/g,' - ');
                             }
+
+                            return data.replace(/<\/?span[^>]*>[^>]*<\/span>/g,'').trim();
                         }
                     },
                     columns: ':visible'
@@ -154,16 +157,12 @@ $( document ).ready(function() {
                 targets: "_all",
                 className: 'dt-body-right'
             }, {
-                targets: 0,
-                className: 'dt-body-left'
-            },
-            {
-                targets: [1,2,3,4, 5,6,7,8,9,10],
+                targets: [2,3,4,5, 6,7,8,9,10,11],
                 render: $.fn.dataTable.render.number(' ', '.', 0, '')
             }
         ],
         aoColumns: [
-            null, null, null, null, null,
+            null, null, null, null, null, null,
             null, null, null, null, null, null,
             perType, perType, perType, perType, perType, perType,
         ]

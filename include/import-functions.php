@@ -13,8 +13,9 @@ const TUTEUR = "Tuteur de stage";
  * @param Object $pdo     L'objet pdo
  * @param string $folder  Le dossier des imports
  * @param bool   $verbose Log verbeux ou non
+ * @param string $env     L'env
  */
-function importDataEtabs(Object &$pdo, string $folder, bool $verbose): void {
+function importDataEtabs(Object &$pdo, string $folder, bool $verbose, ?string $env): void {
     $arrIdServiceFromName = loadServices($pdo);
     $arrTypes = loadTypes($pdo);
     $reverseArrTypes = array_flip($arrTypes);
@@ -41,7 +42,7 @@ function importDataEtabs(Object &$pdo, string $folder, bool $verbose): void {
     $arrMois = ['mois' => intval($mois), 'annee' => intval($annee)];
     $xml1 = simplexml_load_file($folder . '/liste_etablissements.xml');
     $etabs1 = $xml1->xpath('/Etablissements/Etablissement');
-    $xml2 = simplexml_load_file($folder . '/etablissements_etat_lieux.xml');
+    $xml2 = simplexml_load_file($folder . '/etablissements_etat_lieux.xml'); // Le nombre d'utilisateurs potentiel
     $etabs2 = $xml2->xpath('/Etablissements/Etablissement');
     // Effacement en cascade du mois, des stats_etabs du mois et des stats_services du mois
     $req = $pdo->prepare("DELETE FROM mois WHERE annee = :annee and mois = :mois");
@@ -62,8 +63,9 @@ function importDataEtabs(Object &$pdo, string $folder, bool $verbose): void {
     $req->execute($arrMois);
     $idMois = intval($pdo->lastInsertId());
     $arrEtabs = [];
-    $reqGetEtab = $pdo->prepare("SELECT id FROM etablissements WHERE nom = :name AND departement = :departement AND id_type = :id_type AND siren = :siren");
-    $reqInsertEtab = $pdo->prepare("INSERT INTO etablissements (nom, departement, siren, id_type) VALUES (:name, :departement, :siren, :id_type)");
+    $reqGetEtab = $pdo->prepare("SELECT id, uai FROM etablissements WHERE nom = :name AND departement = :departement AND id_type = :id_type AND siren = :siren");
+    $reqInsertEtab = $pdo->prepare("INSERT INTO etablissements (nom, departement, siren, uai, id_type) VALUES (:name, :departement, :siren, :uai, :id_type)");
+    $etabsToInsert = [];
 
     // Première boucle pour gérer les informations des établissements
     foreach ($etabs1 as $etab) {
@@ -83,21 +85,53 @@ function importDataEtabs(Object &$pdo, string $folder, bool $verbose): void {
         $id = null;
         $reqGetEtab->execute($etab);
 
-        // Si l'établissement existe déjà, on récupère son id, sinon on l'insère
+        // Si l'établissement existe déjà, on récupère son id, sinon on note qu'il faut l'insèrer
         if ($row = $reqGetEtab->fetch(PDO::FETCH_ASSOC)) {
-            $id = $row['id'];
+            $etab = array_merge($etab, $row);
+
+            if($etab['id'] === null) {
+                throw new Exception("Erreur impossible de récupérer l'établissement ayant le siren {$etab['siren']}");
+            }
         } else {
-            // TODO: ajouter le traitement pour l'UAI
-            $reqInsertEtab->execute($etab);
-            $id = $pdo->lastInsertId();
+            $etabsToInsert[] = $etab['siren'];
         }
 
-        if($id === null) {
-            throw new Exception("Erreur impossible de récupérer l'établissement ayant le siren {$etab['siren']}");
-        }
-
-        $arrEtabs[$etab['siren']] = array_merge($etab, ['id' => $id]);
+        $arrEtabs[$etab['siren']] = $etab;
     }
+
+    // Si il y'a des étabs a insérer, on récupère leurs uai pour les insérer
+    if (sizeof($etabsToInsert) > 0) {
+        if ($env !== 'dev') {
+            $url = "https://ent.recia.fr/change-etablissement/rest/v2/structures/structs/?ids=".implode(',', $etabsToInsert);
+            $json = file_get_contents($url);
+            $json_data = json_decode($json, true);
+        }
+
+        foreach ($etabsToInsert as $siren) {
+            $uai = null;
+
+            if ($env !== 'dev') {
+                if (array_key_exists($siren, $json_data)) {
+                    $uai = $json_data[$siren]['code'];
+                }
+            } else {
+                $uai = substr($siren, 0, 8);
+            }
+
+            if ($uai === null || $uai === ''){
+                vlog("WARNING : Établissement uai non trouvé : {$siren} - {$arrEtabs[$siren]['name']}");
+            }
+            
+            $arrEtabs[$siren]['uai'] = $uai;
+            $reqInsertEtab->execute($arrEtabs[$siren]);
+            $arrEtabs[$siren]['id'] = $pdo->lastInsertId();
+
+            if($arrEtabs[$siren]['id'] === null) {
+                throw new Exception("Erreur impossible de récupérer l'établissement ayant le siren {$etab['siren']}");
+            }
+        }
+    }
+
 
     // seconde boucle qui permet d'ajouter les stats du nombre de comptes pendant le mois aux établissements
     foreach ($etabs2 as $etab) {

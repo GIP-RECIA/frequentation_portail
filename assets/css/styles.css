@@ -3,10 +3,6 @@ th, td {
     text-align: center;
 }
 
-th {
-    width: 5%;
-}
-
 
 /*---------------------------------
 
@@ -95,6 +91,10 @@ table#result {
     border: 0;
 }
 
+table#result th:nth-child(n+3) {
+    width: 8%;
+}
+
 table#result thead th {
     background-color: #25b2f3;
     border: 0;
@@ -104,23 +104,20 @@ table#result thead tr:first-child th {
     text-transform: uppercase;
 }
 
-table#result thead tr:first-child th {
-    text-transform: uppercase;
-}
-
-table#result thead tr:nth-child(2) th:first-child {
+table#result thead tr:nth-child(2) th:first-child,
+table#result thead tr:nth-child(2) th:nth-child(2) {
     font-size: 1rem;
 
     text-transform: uppercase;
 }
 
-table#result thead tr:first-child th:nth-child(n+2) {
+table#result thead tr:first-child th:nth-child(n+3) {
     background-color: #009fe3;
     font-size: 1rem;
     padding: 12px;
 }
 
-table#result thead tr:first-child th:nth-child(n+2) {
+table#result thead tr:first-child th:nth-child(n+3) {
     border-left: 1px solid #fff;
 }
 
@@ -133,7 +130,9 @@ table#result tbody tr td {
 }
 
 table#result thead tr:nth-child(2) th:first-child,
-table#result tbody tr td:first-child {
+table#result thead tr:nth-child(2) th:nth-child(2),
+table#result tbody tr td:first-child,
+table#result tbody tr td:nth-child(2) {
     text-align: left;
 }
 
@@ -144,7 +143,8 @@ table#result.no-eleve .eleve-elem,
 table#result.no-enseignant .enseignant-elem,
 table#result.no-pers-non-ens .pers-non-ens-elem,
 table#result.no-pers-col .pers-col-elem,
-table#result.no-tuteur .tuteur-elem {
+table#result.no-tuteur .tuteur-elem,
+table#result.view-service .uai {
     display: none;
 }
 
@@ -185,7 +185,7 @@ table.table-striped tbody tr:hover {
     text-align: left
 }
 
-.topResult td:nth-child(2) {
+.topResult td:nth-child(n+3) {
     text-align: right;
 }
 

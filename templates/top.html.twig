@@ -1,9 +1,10 @@
 {% import "macro.html.twig" as macro %}
 <table id="top20Desc" class="topResult table-striped">
-    <thead><tr><td>Établissement</td><td>Total</td><td>Élèves</td><td>Enseignants</td><td>Autres</td></tr></thead>
+    <thead><tr><td>UAI</td><td>Établissement</td><td>Total</td><td>Élèves</td><td>Enseignants</td><td>Autres</td></tr></thead>
     <tbody>
     {% for line in table %}
         <tr>
+            <td>{{ line.uai }}</td>
             <td>{{ line.nom }}</td>
             <td>{{ line.total|number_format(0, ',', ' ') }}</td>
             <td>{{ macro.ratio(line.totalEleves, line.eleves) }}</td>

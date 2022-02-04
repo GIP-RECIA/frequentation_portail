@@ -64,6 +64,7 @@ function getTopData(Object &$pdo, int $idService, int $idMois): array {
     $sql =
         "SELECT
             e.nom as nom,
+            e.uai as uai,
             s.total_sessions as total,
             s.eleve__differents_users as eleves,
             s.enseignant__differents_users as enseignants,
@@ -84,24 +85,7 @@ function getTopData(Object &$pdo, int $idService, int $idMois): array {
     $req = $pdo->prepare($sql);
     $req->execute($args);
 
-    /**
-     * Converti tous les éléments d'un tableau en int sauf "nom"
-     *
-     * @param array $arr Le tableau a convertir
-     *
-     * @return array Le tableau converti
-     */
-    $func = function(array $arr): array {
-        foreach ($arr as $key => &$value) {
-            if ($key !== 'nom') {
-                $value = intval($value);
-            }
-        }
-
-        return $arr;
-    };
-
-    return array_map($func, $req->fetchAll(PDO::FETCH_ASSOC));
+    return $req->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -169,12 +153,14 @@ function getStats(Object &$pdo, int $etabId, bool $serviceView, array $etabType,
     }
 
     if ($serviceView) {
+        $select1 = "'' as uai,";
         $from = "FROM stats_services as s";
         $join = 
             "INNER JOIN services as e ON e.id = s.id_service
             INNER JOIN etablissements as etab ON etab.id = s.id_etablissement";
         $alias = "etab";
     } else {
+        $select1 = "e.uai as uai,";
         $from = "FROM stats_etabs as s";
         $join = "INNER JOIN etablissements as e ON e.id = s.id_etablissement";
         $alias = "e";
@@ -189,6 +175,7 @@ function getStats(Object &$pdo, int $etabId, bool $serviceView, array $etabType,
         "SELECT
             e.id as id,
             e.nom as nom,
+            {$select1}
             SUM(s.au_plus_quatre_fois) as au_plus_quatre_fois,
             SUM(s.au_moins_cinq_fois) as au_moins_cinq_fois,
             SUM(s.differents_users) as differents_users,
@@ -323,10 +310,11 @@ function getEtablissements(Object &$pdo, int $mois, array $etabTypes): array {
     }
     
     $req = $pdo->prepare("
-        SELECT e.id as id, e.nom as nom
+        SELECT e.id as id, CONCAT(IFNULL(e.uai, '?'), ' - ', e.nom) as nom
         FROM etablissements as e
         INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
-        WHERE se.id_mois = ? ${where}");
+        WHERE se.id_mois = ? ${where}
+        ORDER BY e.nom");
     $req->execute(array_merge([$mois], $etabTypes));
 
     return array_map($func, $req->fetchAll(PDO::FETCH_ASSOC));
