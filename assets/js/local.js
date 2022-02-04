@@ -140,12 +140,13 @@ $( document ).ready(function() {
                     format: {
                         body: function (data, row, column, node) {
                             const startColumn = document.getElementById("result").classList.contains('view-service')? 0 : 1;
+                            data = data.replace(/<\/?span[^>]*>[^>]*<\/span>/g,'').trim();
 
                             if (column > startColumn) {
                                 return data.replace(/( |&nbsp;|<\/?i>)/g, '').replace(/<br>/g,' - ');
                             }
 
-                            return data.replace(/<\/?span[^>]*>[^>]*<\/span>/g,'').trim();
+                            return data;
                         }
                     },
                     columns: ':visible'
