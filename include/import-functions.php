@@ -18,7 +18,9 @@ const TUTEUR = "Tuteur de stage";
 function importDataEtabs(Object &$pdo, string $folder, bool $verbose, ?string $env): void {
     $arrIdServiceFromName = loadServices($pdo);
     $arrTypes = loadTypes($pdo);
+    $arrTypes2 = loadTypes2($pdo);
     $reverseArrTypes = array_flip($arrTypes);
+    $reverseArrTypes2 = array_flip($arrTypes2);
 
     $ex = explode("/", $folder);
     $length = (count($ex));
@@ -63,8 +65,8 @@ function importDataEtabs(Object &$pdo, string $folder, bool $verbose, ?string $e
     $req->execute($arrMois);
     $idMois = intval($pdo->lastInsertId());
     $arrEtabs = [];
-    $reqGetEtab = $pdo->prepare("SELECT id, uai FROM etablissements WHERE nom = :name AND departement = :departement AND id_type = :id_type AND siren = :siren");
-    $reqInsertEtab = $pdo->prepare("INSERT INTO etablissements (nom, departement, siren, uai, id_type) VALUES (:name, :departement, :siren, :uai, :id_type)");
+    $reqGetEtab = $pdo->prepare("SELECT id, uai, id_type2 FROM etablissements WHERE nom = :name AND departement = :departement AND id_type = :id_type AND id_type2 = :id_type2 AND siren = :siren");
+    $reqInsertEtab = $pdo->prepare("INSERT INTO etablissements (nom, departement, siren, uai, id_type, id_type2) VALUES (:name, :departement, :siren, :uai, :id_type, :id_type2)");
     $etabsToInsert = [];
 
     // Première boucle pour gérer les informations des établissements
@@ -82,24 +84,61 @@ function importDataEtabs(Object &$pdo, string $folder, bool $verbose, ?string $e
 
         $etab['id_type'] = $reverseArrTypes[$etab['type']];
         unset($etab['type']);
-        $id = null;
-        $reqGetEtab->execute($etab);
-
-        // Si l'établissement existe déjà, on récupère son id, sinon on note qu'il faut l'insèrer
-        if ($row = $reqGetEtab->fetch(PDO::FETCH_ASSOC)) {
-            $etab = array_merge($etab, $row);
-
-            if($etab['id'] === null) {
-                throw new Exception("Erreur impossible de récupérer l'établissement ayant le siren {$etab['siren']}");
-            }
-        } else {
-            $etabsToInsert[] = $etab['siren'];
-        }
-
         $arrEtabs[$etab['siren']] = $etab;
     }
 
-    // Si il y'a des étabs a insérer, on récupère leurs uai pour les insérer
+    // seconde boucle qui permet d'ajouter les stats du nombre de comptes pendant le mois aux établissements
+    foreach ($etabs2 as $etab) {
+        $etabAttr = current($etab->attributes());
+
+        if (!array_key_exists($etabAttr['siren'], $arrEtabs)) {
+            vlog("WARNING : Établissement ignoré car absent du fichier liste_etablissements.xml : {$etab['siren']} - {$etab['name']}");
+        } else {
+            $users = [];
+    
+            foreach ($etab->ProfilsGlobaux->ProfilGlobal as $profil) {
+                $users[(string)$profil['name']] = $profil;
+            }
+            
+            $arrEtabs[$etabAttr['siren']]['users'] = $users;
+
+            // Si ce type n'existe pas, on le créé
+            if (!array_key_exists($etabAttr['type'], $reverseArrTypes2)) {
+                $req = $pdo->prepare("INSERT INTO types2 (nom) VALUES (:nom)");
+                $req->execute(['nom' => $etabAttr['type']]);
+                $id = intval($pdo->lastInsertId());
+                $arrTypes2[$id] = $etabAttr['type'];
+                $reverseArrTypes2[$etabAttr['type']] = $id;
+            }
+
+            $arrEtabs[$etabAttr['siren']]['id_type2'] = $reverseArrTypes2[$etabAttr['type']];
+        }
+    }
+
+    foreach ($arrEtabs as $key => $etabFromArr) {
+        if (!array_key_exists('users', $etabFromArr)) {
+            vlog("WARNING : Établissement ignoré car absent du fichier etablissements_etat_lieux.xml : {$etabFromArr['siren']} - {$etabFromArr['name']}");
+            unset($arrEtabs[$key]);
+        } else {
+            $id = null;
+            $reqGetEtab->execute(array_intersect_key($etabFromArr, ['name' => null, 'departement' => null, 'siren' => null, 'id_type' => null, 'id_type2' => null]));
+    
+            // Si l'établissement existe déjà, on récupère son id, sinon on note qu'il faut l'insèrer
+            if ($row = $reqGetEtab->fetch(PDO::FETCH_ASSOC)) {
+                $etab = array_merge($etabFromArr, $row);
+    
+                if($etab['id'] === null) {
+                    throw new Exception("Erreur impossible de récupérer l'établissement ayant le siren {$etab['siren']}");
+                }
+
+                $arrEtabs[$key] = $etab;
+            } else {
+                $etabsToInsert[] = $etabFromArr['siren'];
+            }
+        }
+    }
+
+    // Si il y'a des etabs a insérer, on récupère leurs uai pour les insérer
     if (sizeof($etabsToInsert) > 0) {
         if ($env !== 'dev') {
             $url = "https://ent.recia.fr/change-etablissement/rest/v2/structures/structs/?ids=".implode(',', $etabsToInsert);
@@ -123,37 +162,15 @@ function importDataEtabs(Object &$pdo, string $folder, bool $verbose, ?string $e
             }
             
             $arrEtabs[$siren]['uai'] = $uai;
-            $reqInsertEtab->execute($arrEtabs[$siren]);
+            //print_r($siren);
+            $etab = array_intersect_key($arrEtabs[$siren], ['name' => null, 'departement' => null, 'siren' => null, 'id_type' => null, 'id_type2' => null, 'uai' => null]);
+            //print_r($etab);
+            $reqInsertEtab->execute($etab);
             $arrEtabs[$siren]['id'] = $pdo->lastInsertId();
 
             if($arrEtabs[$siren]['id'] === null) {
                 throw new Exception("Erreur impossible de récupérer l'établissement ayant le siren {$etab['siren']}");
             }
-        }
-    }
-
-
-    // seconde boucle qui permet d'ajouter les stats du nombre de comptes pendant le mois aux établissements
-    foreach ($etabs2 as $etab) {
-        $etabAttr = current($etab->attributes());
-
-        if (!array_key_exists($etabAttr['siren'], $arrEtabs)) {
-            vlog("WARNING : Établissement ignoré car absent du fichier liste_etablissements.xml : {$etab['siren']} - {$etab['name']}");
-        } else {
-            $users = [];
-    
-            foreach ($etab->ProfilsGlobaux->ProfilGlobal as $profil) {
-                $users[(string)$profil['name']] = $profil;
-            }
-            
-            $arrEtabs[$etabAttr['siren']]['users'] = $users;
-        }
-    }
-
-    foreach ($arrEtabs as $etab) {
-        if (!array_key_exists('users', $etab)) {
-            vlog("WARNING : Établissement ignoré car absent du fichier etablissements_etat_lieux.xml : {$etab['siren']} - {$etab['name']}");
-            unset($arrEtabs[$etab['siren']]);
         }
     }
 
@@ -331,6 +348,25 @@ function loadServices(Object &$pdo): array {
  */
 function loadTypes(Object &$pdo): array {
     $req = $pdo->prepare("SELECT id, nom FROM types");
+    $req->execute();
+    $arrTypes = [];
+
+    while ($row = $req->fetch(PDO::FETCH_ASSOC)) {
+        $arrTypes[intval($row['id'])] = $row['nom'];
+    }
+
+    return $arrTypes;
+}
+
+/**
+ * Génère la liste de tous les types2
+ *
+ * @param Object $pdo L'objet pdo
+ *
+ * @return array Le tableau des types2
+ */
+function loadTypes2(Object &$pdo): array {
+    $req = $pdo->prepare("SELECT id, nom FROM types2");
     $req->execute();
     $arrTypes = [];
 

@@ -41,19 +41,33 @@ CREATE TABLE IF NOT EXISTS `types` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `types2`
+--
+
+CREATE TABLE IF NOT EXISTS `types2` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nom` varchar(64) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `etablissements`
 --
 
 CREATE TABLE IF NOT EXISTS `etablissements` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_type` int(11) NOT NULL,
+  `id_type2` int(11) NOT NULL,
   `nom` varchar(255) NOT NULL,
   `departement` int(11) NOT NULL,
   `siren` varchar(15) NOT NULL,
   `uai` varchar(8),
   PRIMARY KEY (`id`),
   FOREIGN KEY (`id_type`) REFERENCES `types` (`id`),
-  CONSTRAINT UQ_etab UNIQUE (siren, nom, departement, id_type)
+  FOREIGN KEY (`id_type2`) REFERENCES `types2` (`id`),
+  CONSTRAINT UQ_etab UNIQUE (nom, departement, siren, id_type, id_type2)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
