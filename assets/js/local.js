@@ -28,11 +28,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.switch-auto').forEach(
         (currentSwitch) => {
             if (storageAvailable('sessionStorage')) {
-                let check = sessionStorage.getItem(currentSwitch.id) == 'true';
+                let check = sessionStorage.getItem(currentSwitch.id);
+
                 if (check == null) {
                     sessionStorage.setItem(currentSwitch.id, currentSwitch.checked);
                 } else {
-                    currentSwitch.checked = check;
+                    currentSwitch.checked = check == 'true';
                 }
             }
             table.classList.add(currentSwitch.checked === true ? currentSwitch.dataset.val2 : currentSwitch.dataset.val1);
