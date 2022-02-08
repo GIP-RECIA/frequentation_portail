@@ -46,6 +46,7 @@ function main(): void {
         
         $etab = -1;
         $resultType = VIEW_SERVICES;
+        $departement = [];
         $etabType = [];
         $etabType2 = [];
         $serviceView = true;
@@ -57,6 +58,10 @@ function main(): void {
         
         if (isset($_REQUEST["etabType2"])) {
             $etabType2 = array_map('intval', $_REQUEST["etabType2"]);
+        }
+        
+        if (isset($_REQUEST["departement"])) {
+            $departement = array_map('intval', $_REQUEST["departement"]);
         }
         
         if (isset($_REQUEST["etab"])) {
@@ -72,17 +77,18 @@ function main(): void {
             'etabReadOnly' => $etabReadOnly,
             'viewService' => $serviceView,
             'listMois' => $listMois,
+            'listDepartements' => getDepartements($pdo, $mois),
             'listTypesEtab' => getTypesEtablissements($pdo, $mois),
             'listTypes2Etab' => getTypes2Etablissements($pdo, $mois, $etabType),
-            'listEtabs' => getEtablissements($pdo, $mois, $etabType, $etabType2),
+            'listEtabs' => getEtablissements($pdo, $mois, $etabType, $etabType2, $departement),
             'mois' => $mois,
+            'departement' => $departement,
             'typesEtab' => $etabType,
             'types2Etab' => $etabType2,
             'etab' => $etab,
-            'table' => getDataTable($pdo, $etab, $serviceView, $etabType, $mois, $show_simple_data),
+            // TODO: ajouter les départements et les etabTypes2 dans cette fonction pour filtrer
+            'table' => getDataTable($pdo, $etab, $serviceView, $mois, $departement, $etabType, $etabType2, $show_simple_data),
         ];
-
-        //print_r($templateDate['listEtabs']);
 
         $pdo = null;
 

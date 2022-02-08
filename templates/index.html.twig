@@ -13,14 +13,14 @@
         <script src="./assets/js/jszip.min.js"></script>
         <script src="./assets/js/buttons.html5.js"></script>
         <script src="./assets/js/button.print.js"></script>
-        <script src="./assets/js/local.js?9"></script>
+        <script src="./assets/js/local.js?10"></script>
 
 
         <link rel="stylesheet" href="./assets/css/bootstrap.css">
         <link rel="stylesheet" href="./assets/css/datatables.css">
         <link rel="stylesheet" href="./assets/css/datatables.responsive.css">
         <link rel="stylesheet" href="./assets/css/select2.css">
-        <link rel="stylesheet" href="./assets/css/styles.css?5"/>
+        <link rel="stylesheet" href="./assets/css/styles.css?6"/>
     </head>
 
     <body>
@@ -45,9 +45,10 @@
                         <div class="form-group mr-2 mb-3">
                             <label>Voir les résultats pour :</label>
                         </div>
+                        <div class="break"></div>
                         <div class="form-group mr-2 mb-3">
                             <label for="mois" class="sr-only">Période</label>
-                            <select id="mois" name="mois" class="form-control">
+                            <select id="mois" name="mois" class="form-control" data-pos="1">
                                 {% for forMois in listMois %}
                                     <option {% if forMois.id == mois %}selected {% endif %}value="{{ forMois.id }}">{{ forMois.mois }}</option>
                                 {% endfor %}
@@ -55,9 +56,18 @@
                         </div>
                         {% if not etabReadOnly %}
                         <div class="form-group mr-2 mb-3">
+                            <label for="departement" class="sr-only">département</label>
+                            <select id="departement" name="departement[]" class="form-control js-select2-mutliple departement"
+                                    multiple="multiple" style="width:200px;" data-placeholder="Tous les départements" data-pos="2">
+                                {% for forDepartement in listDepartements %}
+                                    <option {% if forDepartement in departement %}selected {% endif %}value="{{ forDepartement }}">{{ forDepartement }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group mr-2 mb-3">
                             <label for="etabType" class="sr-only">catégorie</label>
                             <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple type"
-                                    multiple="multiple" style="width:150px;">
+                                    multiple="multiple" style="width:150px;" data-placeholder="Tous les types" data-pos="3">
                                 {% for forTypeEtab in listTypesEtab %}
                                     <option {% if forTypeEtab.id in typesEtab %}selected {% endif %}value="{{ forTypeEtab.id }}">{{ forTypeEtab.nom }}</option>
                                 {% endfor %}
@@ -66,7 +76,7 @@
                         <div class="form-group mr-2 mb-3">
                             <label for="etabType2" class="sr-only">catégorie avancée</label>
                             <select id="etabType2" name="etabType2[]" class="form-control js-select2-mutliple type2"
-                                    multiple="multiple" style="width:450px;">
+                                    multiple="multiple" style="width:450px;" data-placeholder="Tous les types avancés" data-pos="4">
                                 {% for forType2Etab in listTypes2Etab %}
                                     <option {% if forType2Etab.id in types2Etab %}selected {% endif %}value="{{ forType2Etab.id }}">{{ forType2Etab.nom }}</option>
                                 {% endfor %}
@@ -84,6 +94,7 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <div class="break"></div>
                         <button id="filterBtn" class="btn btn-primary mb-3">Filtrer</button>
                         <button id="reset" class="btn btn-default mb-3">Ré-initialiser les filtres</button>
                         <input id="resultType" type="hidden" name="resultType" value="{% if viewService %}{{ constant('VIEW_SERVICES') }}{% else %}{{ constant('VIEW_ETABS') }}{% endif %}"/>

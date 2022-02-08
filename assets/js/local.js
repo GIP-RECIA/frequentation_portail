@@ -60,6 +60,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 $( document ).ready(function() {
+    const $mois = $('#mois');
+    const $departement = $('#departement');
+    const $etabType = $('#etabType');
+    const $etabType2 = $('#etabType2');
+    const $etab = $('#etab');
+    const formValues = {
+        serviceId: null,
+        mois: $mois.val(),
+        departement: $departement.val(),
+        etabType: $etabType.val(),
+        etabType2: $etabType2.val()
+    };
+    const perType = { "sType": "percent" };
+    let reload = true;
+
     jQuery.fn.dataTableExt.oSort["percent-asc"]  = function(x,y) {
         const xa = parseFloat(x.split("%")[0]);
         const ya = parseFloat(y.split("%")[0]);
@@ -70,24 +85,14 @@ $( document ).ready(function() {
         return jQuery.fn.dataTableExt.oSort["percent-asc"](y, x);
     };
 
-    const $mois = $('#mois');
-    const $etabType = $('#etabType');
-    const $etabType2 = $('#etabType2');
-    const $etab = $('#etab');
-    let reload = true;
-
-    const perType = { "sType": "percent" };
-
     $('.top20').click (function () {
         const serviceTitle = $(this).parent().contents().get(2).nodeValue.trim();
+        formValues.serviceId = $(this).attr('data-serviceid');
         $.ajax({
             url: "./top.php",
             type: "POST",
             async: false,
-            data: ({
-                serviceId: $(this).attr('data-serviceid'),
-                mois: $mois.val()
-            }),
+            data: formValues,
             complete: function(data){
                 $('#serviceTitle').html(serviceTitle);
                 $('#topContent').html(data.responseText);
@@ -99,7 +104,7 @@ $( document ).ready(function() {
     /**
      * Système de rechargement des listes dynamique
      */
-    const reloadFilters = function () {
+    const reloadFilters = function (type) {
         if (reload) {
             $.ajax({
                 url: "./reloadFilters.php",
@@ -107,32 +112,57 @@ $( document ).ready(function() {
                 async: false,
                 data: ({
                     mois: $mois.val(),
+                    departement: $departement.val(),
                     etabType: $etabType.val(),
-                    etabType2: $etabType2.val()
+                    etabType2: $etabType2.val(),
+                    pos: this.dataset.pos
                 }),
                 complete: function(data){
-                    const actualEtab = $etab.val();
-                    const actualType2 = $etabType2.val();
-                    const actualType = $etabType.val();
-                    $etabType.empty();
-                    $etabType2.empty();
-                    $etab.empty().append(new Option("Tous les établissements", "-1", true, actualEtab == -1))
-                    data.responseJSON['types'].forEach((val) => {
-                        $etabType.append(new Option(val['nom'], val['id'], false, actualType.includes(val['id'])))
-                    });
-                    data.responseJSON['types2'].forEach((val) => {
-                        $etabType2.append(new Option(val['nom'], val['id'], false, actualType2.includes(val['id'])))
-                    });
-                    data.responseJSON['etabs'].forEach((val) => {
-                        $etab.append(new Option(val['nom'], val['id'], false, actualEtab == val['id']))
-                    });
+                    const dataDepartements = data.responseJSON['departements'];
+                    const dataTypes = data.responseJSON['types'];
+                    const dataTypes2 = data.responseJSON['types2'];
+                    const dataEtabs = data.responseJSON['etabs'];
+
+                    if (dataDepartements != undefined) {
+                        const actualDepartement = $departement.val();
+                        $departement.empty();
+                        dataDepartements.forEach((val) => {
+                            $departement.append(new Option(val, val, false, actualDepartement.includes(val)))
+                        });
+                    }
+
+                    if (dataTypes != undefined) {
+                        const actualType = $etabType.val();
+                        $etabType.empty();
+                        dataTypes.forEach((val) => {
+                            $etabType.append(new Option(val['nom'], val['id'], false, actualType.includes(val['id'])))
+                        });
+                    }
+
+                    if (dataTypes2 != undefined) {
+                        const actualType2 = $etabType2.val();
+                        $etabType2.empty();
+                        dataTypes2.forEach((val) => {
+                            $etabType2.append(new Option(val['nom'], val['id'], false, actualType2.includes(val['id'])))
+                        });
+                    }
+
+                    if (dataEtabs != undefined) {
+                        const actualEtab = $etab.val();
+                        $etab.empty().append(new Option("Tous les établissements", "-1", true, actualEtab == -1))
+                        dataEtabs.forEach((val) => {
+                            $etab.append(new Option(val['nom'], val['id'], false, actualEtab == val['id']))
+                        });
+                    }
                 }
             });
         }
     };
 
     $mois.change(reloadFilters);
+    $departement.change(reloadFilters);
     $etabType.change(reloadFilters);
+    $etabType2.change(reloadFilters);
 
     $('#result').DataTable({
         autoWidth: false,
@@ -195,11 +225,9 @@ $( document ).ready(function() {
         disabled: $etab.data('disabled')
     });
 
-    $('.js-select2-mutliple.type').select2({
-        placeholder: "Tous les types"
-    });
-
-    $('.js-select2-mutliple.type2').select2({
-        placeholder: "Tous les types avancés"
+    $('.js-select2-mutliple').each(function() {
+        $(this).select2({
+            placeholder: this.dataset.placeholder
+        });
     });
 })
