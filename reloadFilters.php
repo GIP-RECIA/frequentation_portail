@@ -16,11 +16,15 @@ function main(): void {
         $pdo = getNewPdo($configs['db']);
 
         $mois = $_REQUEST["mois"];
+        $etabType = [];
+        $etabType2 = [];
 
         if (isset($_REQUEST["etabType"])) {
             $etabType = array_map('intval', $_REQUEST["etabType"]);
-        } else {
-            $etabType = [];
+        }
+
+        if (isset($_REQUEST["etabType2"])) {
+            $etabType2 = array_map('intval', $_REQUEST["etabType2"]);
         }
 
         if(!is_numeric($mois)) {
@@ -31,7 +35,8 @@ function main(): void {
 
         $res = [
             'types' => getTypesEtablissements($pdo, $mois),
-            'etabs' => getEtablissements($pdo, $mois, $etabType),
+            'types2' => getTypes2Etablissements($pdo, $mois, $etabType),
+            'etabs' => getEtablissements($pdo, $mois, $etabType, $etabType2),
         ];
 
         $pdo = null;
@@ -39,7 +44,6 @@ function main(): void {
         header('Content-type: application/json');
         echo json_encode($res);
     } catch (Exception $e) {
-        echo "hello";
         showException($e, $configs['env']);
     }
 }

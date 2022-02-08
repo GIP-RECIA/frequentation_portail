@@ -71,8 +71,9 @@ $( document ).ready(function() {
     };
 
     const $mois = $('#mois');
-    const $etab = $('#etab');
     const $etabType = $('#etabType');
+    const $etabType2 = $('#etabType2');
+    const $etab = $('#etab');
     let reload = true;
 
     const perType = { "sType": "percent" };
@@ -106,18 +107,24 @@ $( document ).ready(function() {
                 async: false,
                 data: ({
                     mois: $mois.val(),
-                    etabType: $etabType.val()
+                    etabType: $etabType.val(),
+                    etabType2: $etabType2.val()
                 }),
                 complete: function(data){
                     const actualEtab = $etab.val();
+                    const actualType2 = $etabType2.val();
                     const actualType = $etabType.val();
-                    $etab.empty().append(new Option("Tous les établissements", "-1", true, actualEtab == -1))
                     $etabType.empty();
-                    data.responseJSON['etabs'].forEach((val) => {
-                        $etab.append(new Option(val['nom'], val['id'], false, actualEtab == val['id']))
-                    });
+                    $etabType2.empty();
+                    $etab.empty().append(new Option("Tous les établissements", "-1", true, actualEtab == -1))
                     data.responseJSON['types'].forEach((val) => {
                         $etabType.append(new Option(val['nom'], val['id'], false, actualType.includes(val['id'])))
+                    });
+                    data.responseJSON['types2'].forEach((val) => {
+                        $etabType2.append(new Option(val['nom'], val['id'], false, actualType2.includes(val['id'])))
+                    });
+                    data.responseJSON['etabs'].forEach((val) => {
+                        $etab.append(new Option(val['nom'], val['id'], false, actualEtab == val['id']))
                     });
                 }
             });
