@@ -14,6 +14,17 @@ return [
         'context' => "cas",
         'certificat' => "",
     ],
+    'ldap' => [
+        'protocole' => "ldap",
+        'host' => "",
+        'port' => 389,
+        'dn' => "cn=stats,ou=administrateurs,dc=esco-centre,dc=fr",
+        'password' => "",
+    ],
     'importDir' => '',
     'env' => "prod",
+    'departments' => [18, 28, 36, 37, 41, 45],
+    /*'debug' => [
+        'uid' => "f20u000a",
+    ],*/
 ];

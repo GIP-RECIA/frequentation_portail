@@ -1,6 +1,5 @@
 <?php
 
-use App\Config;
 use App\DB;
 
 const PARENT = "Parent";

@@ -48,9 +48,10 @@ mysql -h HOST -P PORT -D DATABASE -u USER -p < data/frequentation_portail_struct
 
 Extensions nécessaires :
 * PDO
-* Mysqli
+* PDO_mysql
 * Xml
 * MBstring
+* ldap
 
 ### MariaDB
 

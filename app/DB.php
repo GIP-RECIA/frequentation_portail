@@ -22,16 +22,23 @@ class DB {
      *  @return PDO L'objet pdo pour se connecter à la db
      **/
     public static function getPdo(): PDO {
-        if (DB::$PDO === null) {
+        if (self::$PDO === null) {
             $conf = (Config::getInstance())->get('db');
-            DB::$PDO = new PDO(
+            self::$PDO = new PDO(
                 "mysql:host={$conf['host']};port={$conf['port']};dbname={$conf['dbName']};charset=utf8",
                 $conf['user'],
                 $conf['password']
             );
-            DB::$PDO->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            self::$PDO->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         }
 
-        return DB::$PDO;
+        return self::$PDO;
+    }
+
+    /**
+     * Destructeur
+     */
+    public function __destruct() {
+        self::$PDO = null;
     }
 }

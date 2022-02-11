@@ -2,6 +2,7 @@
 
 namespace App;
 
+use Exception;
 use App\Config;
 
 /**
@@ -44,8 +45,8 @@ class Cas {
             
             $cas_reals_hosts = [$cas_host];
             //si uniquement tranmission attribut
-            phpCAS::setDebug();
-            phpCAS::setVerbose(true);
+            phpCAS::setDebug(false);
+            //phpCAS::setVerbose(true);
             
             phpCAS::client(CAS_VERSION_2_0, $cas_host, $cas_port, $cas_context);
             //phpCAS::client(SAML_VERSION_1_1, $cas_host, $cas_port, $cas_context);
@@ -76,5 +77,24 @@ class Cas {
         }
 
         return $_SESSION['phpCAS']['attributes'][$attributeName];
+    }
+
+    /**
+     * Retourne l'identifiant de l'utilisateur courant
+     *
+     * @param string uid user
+     */
+    public function getUidUser(): string {
+        if ($this->config->get('env') !== "dev") {
+            return strtolower(phpCAS::getUser());
+        }
+
+        $debug = $this->config->get('debug');
+
+        if ($debug !== null && array_key_exists('uid', $debug)) {
+            return strtolower($debug['uid']);
+        }
+
+        throw new Exception("Impossible de récupérer l'uid de l'utilisateur");
     }
 }
