@@ -1,22 +1,22 @@
 <?php
 
-require './include/db.php';
-require './include/import-functions.php';
+use App\Config;
+
+require 'vendor/autoload.php';
+require 'include/import-functions.php';
 
 function main(array $argv): void {
     try {
-        $configs = include('./include/config.php');
+        $config = Config::getInstance();
         
         if (!isset($argv)) {
             throw new Exception("Aucun argument spécifié");
         }
         
-        $pdo = getNewPdo($configs['db']);
-        
         $options = getopt('d:c:v');
         
         $date = isset($options['d']) ? $options['d'] : null;
-        $chemin = isset($options['c']) ? $options['c'] : $configs['importDir'];
+        $chemin = isset($options['c']) ? $options['c'] : $config->get('importDir');
         $verbose = isset($options['v']);
         $folder = date('Y/m');
         $path = '';
@@ -46,10 +46,9 @@ function main(array $argv): void {
         }
         
         vlog("Démarrage de l'import");
-        importDataEtabs($pdo, $path.$folder, $verbose, $configs['env']);
+        importDataEtabs($path.$folder, $verbose, $config->get('env'));
         vlog("Fin de l'import");
         
-        $pdo = null;
     } catch (PDOException $e) {
         die("Erreur PDO : ".$e->getMessage());
     } catch (Exception $e) {

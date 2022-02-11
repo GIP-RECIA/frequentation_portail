@@ -1,18 +1,18 @@
 <?php
 
-require './vendor/autoload.php';
-require './include/cas.php';
-require './include/db.php';
-require './include/web-functions.php';
+require 'vendor/autoload.php';
+require 'include/web-functions.php';
+
+use App\Cas;
 
 const VIEW_SERVICES = "services";
 const VIEW_ETABS = "etabs";
 
 function main(): void {
     try {
-        $configs = include('./include/config.php');
-        casInit($configs['cas']);
-        $pdo = getNewPdo($configs['db']);
+        $cas = Cas::getInstance();
+        $cas->init();
+
         $mois = $_REQUEST["mois"];
         $serviceId = $_REQUEST["serviceId"];
         $departement = [];
@@ -41,8 +41,7 @@ function main(): void {
         
         $mois = intval($mois);
         $serviceId = intval($serviceId);
-        $templateDate = ['table' => getTopData($pdo, $serviceId, $mois, $departement, $etabType, $etabType2)];
-        $pdo = null;
+        $templateDate = ['table' => getTopData($serviceId, $mois, $departement, $etabType, $etabType2)];
         // le dossier ou on trouve les templates
         $loader = new Twig\Loader\FilesystemLoader('templates');
         // initialiser l'environnement Twig
@@ -53,7 +52,7 @@ function main(): void {
         // render template
         echo $template->render($templateDate);
     } catch (Exception $e) {
-        showException($e, $configs['env']);
+        showException($e);
     }
 }
 

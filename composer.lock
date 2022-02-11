@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "417f74706cda9c474840f25ec741888f",
+    "content-hash": "561850ba3130e8a3ac2cbaf993165058",
     "packages": [
         {
             "name": "jasig/phpcas",
@@ -353,9 +353,7 @@
     "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": {
-        "ext-mysqli": "*"
-    },
+    "platform": [],
     "platform-dev": [],
     "plugin-api-version": "1.1.0"
 }

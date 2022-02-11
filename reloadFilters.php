@@ -1,19 +1,17 @@
 <?php
 
-require './vendor/autoload.php';
-require './include/cas.php';
-require './include/db.php';
-require './include/web-functions.php';
+require 'vendor/autoload.php';
+require 'include/web-functions.php';
+
+use App\Cas;
 
 const VIEW_SERVICES = "services";
 const VIEW_ETABS = "etabs";
 
 function main(): void {
     try {
-        $configs = include('./include/config.php');
-        
-        casInit($configs['cas']);
-        $pdo = getNewPdo($configs['db']);
+        $cas = Cas::getInstance();
+        $cas->init();
 
         $mois = $_REQUEST["mois"];
         $pos = $_REQUEST["pos"];
@@ -47,21 +45,19 @@ function main(): void {
 
         switch ($pos) {
             case 1:
-                $res['departements'] = getDepartements($pdo, $mois);
-                $res['types'] = getTypesEtablissements($pdo, $mois);
+                $res['departements'] = getDepartements($mois);
+                $res['types'] = getTypesEtablissements($mois);
             case 3:
-                $res['types2'] = getTypes2Etablissements($pdo, $mois, $etabType);
+                $res['types2'] = getTypes2Etablissements($mois, $etabType);
             case 2:
             case 4:
-                $res['etabs'] = getEtablissements($pdo, $mois, $etabType, $etabType2, $departement);
+                $res['etabs'] = getEtablissements($mois, $etabType, $etabType2, $departement);
         }
-
-        $pdo = null;
 
         header('Content-type: application/json');
         echo json_encode($res);
     } catch (Exception $e) {
-        showException($e, $configs['env']);
+        showException($e);
     }
 }
 

@@ -1,33 +1,30 @@
 <?php
 
-require './vendor/autoload.php';
-require './include/cas.php';
-require './include/db.php';
-require './include/web-functions.php';
+require 'vendor/autoload.php';
+require 'include/web-functions.php';
+
+use App\Cas;
 
 const VIEW_SERVICES = "services";
 const VIEW_ETABS = "etabs";
 
 function main(): void {
     try {
-        $configs = include('./include/config.php');
-        
-        casInit($configs['cas']);
+        $cas = Cas::getInstance();
+        $cas->init();
         
         if (isset($_REQUEST['logout'])) {
-            casLogout();
+            $cas->logout();
         }
-        
-        $pdo = getNewPdo($configs['db']);
         
         //$_SESSION['phpCAS']['attributes']['ESCOSIRENCourant'] = "19450042700035"; //durzy
         //unset($_SESSION['phpCAS']['attributes']['ESCOSIRENCourant']);
-        $siren = getCasAttribute('ESCOSIRENCourant');
+        $siren = $cas->getAttribute('ESCOSIRENCourant');
         //enseignant: National_ENS
         //directeur: National_DIR
-        $role = getCasAttribute('ENTPersonProfils');
+        $role = $cas->getAttribute('ENTPersonProfils');
         $mois = null;
-        $listMois = getListMois($pdo, $siren);
+        $listMois = getListMois($siren);
         
         if (isset($_REQUEST["mois"])) {
             $mois = intval($_REQUEST["mois"]);
@@ -36,7 +33,7 @@ function main(): void {
             $mois = intval($listMois[0]['id']);
         }
 
-        $etablissement = !empty($siren) ? get_etablissement_id_by_siren($pdo, $mois, $siren) : null;
+        $etablissement = !empty($siren) ? get_etablissement_id_by_siren($mois, $siren) : null;
         $etabReadOnly = $etablissement !== null;
         $show_simple_data = $etablissement !== null && $role == "National_DIR";
         
@@ -77,20 +74,18 @@ function main(): void {
             'etabReadOnly' => $etabReadOnly,
             'viewService' => $serviceView,
             'listMois' => $listMois,
-            'listDepartements' => getDepartements($pdo, $mois),
-            'listTypesEtab' => getTypesEtablissements($pdo, $mois),
-            'listTypes2Etab' => getTypes2Etablissements($pdo, $mois, $etabType),
-            'listEtabs' => getEtablissements($pdo, $mois, $etabType, $etabType2, $departement),
+            'listDepartements' => getDepartements($mois),
+            'listTypesEtab' => getTypesEtablissements($mois),
+            'listTypes2Etab' => getTypes2Etablissements($mois, $etabType),
+            'listEtabs' => getEtablissements($mois, $etabType, $etabType2, $departement),
             'mois' => $mois,
             'departement' => $departement,
             'typesEtab' => $etabType,
             'types2Etab' => $etabType2,
             'etab' => $etab,
             // TODO: ajouter les départements et les etabTypes2 dans cette fonction pour filtrer
-            'table' => getDataTable($pdo, $etab, $serviceView, $mois, $departement, $etabType, $etabType2, $show_simple_data),
+            'table' => getDataTable($etab, $serviceView, $mois, $departement, $etabType, $etabType2, $show_simple_data),
         ];
-
-        $pdo = null;
 
         // le dossier ou on trouve les templates
         $loader = new Twig\Loader\FilesystemLoader('templates');
@@ -102,7 +97,7 @@ function main(): void {
         // render template
         echo $template->render($templateDate);
     } catch (Exception $e) {
-        showException($e, $configs['env']);
+        showException($e);
     }
 }
 

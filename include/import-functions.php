@@ -1,5 +1,8 @@
 <?php
 
+use App\Config;
+use App\DB;
+
 const PARENT = "Parent";
 const ELEVE = "Elève";
 const ENSEIGNANT = "Enseignant";
@@ -10,15 +13,15 @@ const TUTEUR = "Tuteur de stage";
 /**
  * Import des données en bdd pour tous les établissements
  *
- * @param Object $pdo     L'objet pdo
  * @param string $folder  Le dossier des imports
  * @param bool   $verbose Log verbeux ou non
  * @param string $env     L'env
  */
-function importDataEtabs(Object &$pdo, string $folder, bool $verbose, ?string $env): void {
-    $arrIdServiceFromName = loadServices($pdo);
-    $arrTypes = loadTypes($pdo);
-    $arrTypes2 = loadTypes2($pdo);
+function importDataEtabs(string $folder, bool $verbose, ?string $env): void {
+    $pdo = DB::getPdo();
+    $arrIdServiceFromName = loadServices();
+    $arrTypes = loadTypes();
+    $arrTypes2 = loadTypes2();
     $reverseArrTypes = array_flip($arrTypes);
     $reverseArrTypes2 = array_flip($arrTypes2);
 
@@ -241,7 +244,7 @@ function importDataEtabs(Object &$pdo, string $folder, bool $verbose, ?string $e
             if ($verbose) {
                 vlog("Etablissement {$etab['name']}");
             }
-            importDataEtab($pdo, $arrIdServiceFromName, $etab, "{$folder}/mois_{$etab['siren']}.xml", $idMois, $reqInsertService, $reqInsertEtab);
+            importDataEtab($arrIdServiceFromName, $etab, "{$folder}/mois_{$etab['siren']}.xml", $idMois, $reqInsertService, $reqInsertEtab);
         }
     }
 }
@@ -249,7 +252,6 @@ function importDataEtabs(Object &$pdo, string $folder, bool $verbose, ?string $e
 /**
  * Import des données en bdd pour un établissement
  *
- * @param Object $pdo                  L'objet pdo
  * @param array  $arrIdServiceFromName Le cache de relation name => id
  * @param array  $etab                 L'établissement
  * @param string $f                    Le nom du fichier correspondant à l'établissement
@@ -257,7 +259,7 @@ function importDataEtabs(Object &$pdo, string $folder, bool $verbose, ?string $e
  * @param Object $reqInsertService     Une requête d'insertion préparée pour les donnée d'un service
  * @param Object $reqInsertEtab        Une requête d'insertion préparée pour les donnée de profils globaux
  */
-function importDataEtab(Object &$pdo, array &$arrIdServiceFromName, $etab, $f, $idMois, &$reqInsertService, &$reqInsertEtab): void {
+function importDataEtab(array &$arrIdServiceFromName, $etab, $f, $idMois, &$reqInsertService, &$reqInsertEtab): void {
     $xml = simplexml_load_file($f);
     $profils = $xml->xpath('/Etablissement/ProfilsGlobaux/ProfilGlobal');
     $users = [];
@@ -293,7 +295,7 @@ function importDataEtab(Object &$pdo, array &$arrIdServiceFromName, $etab, $f, $
     $services = $xml->xpath('/Etablissement/Services/Service');
 
     foreach ($services as $service) {
-        $idService = getIdServiceFromName($pdo, $arrIdServiceFromName, $service['name']);
+        $idService = getIdServiceFromName($arrIdServiceFromName, $service['name']);
         $users = [];
         $profils = $service->xpath('Profils/Profil');
 
@@ -323,11 +325,10 @@ function importDataEtab(Object &$pdo, array &$arrIdServiceFromName, $etab, $f, $
 /**
  * Génère la liste de tous les services
  *
- * @param Object $pdo L'objet pdo
- *
  * @return array Le tableau des services
  */
-function loadServices(Object &$pdo): array {
+function loadServices(): array {
+    $pdo = DB::getPdo();
     $req = $pdo->prepare("SELECT id, nom FROM services");
     $req->execute();
     $arrIdServiceFromName = [];
@@ -342,11 +343,10 @@ function loadServices(Object &$pdo): array {
 /**
  * Génère la liste de tous les types
  *
- * @param Object $pdo L'objet pdo
- *
  * @return array Le tableau des types
  */
-function loadTypes(Object &$pdo): array {
+function loadTypes(): array {
+    $pdo = DB::getPdo();
     $req = $pdo->prepare("SELECT id, nom FROM types");
     $req->execute();
     $arrTypes = [];
@@ -361,11 +361,10 @@ function loadTypes(Object &$pdo): array {
 /**
  * Génère la liste de tous les types2
  *
- * @param Object $pdo L'objet pdo
- *
  * @return array Le tableau des types2
  */
-function loadTypes2(Object &$pdo): array {
+function loadTypes2(): array {
+    $pdo = DB::getPdo();
     $req = $pdo->prepare("SELECT id, nom FROM types2");
     $req->execute();
     $arrTypes = [];
@@ -380,13 +379,14 @@ function loadTypes2(Object &$pdo): array {
 /**
  * Récupère l'identifiant d'un service a partir de son nom
  *
- * @param Object $pdo                  L'objet pdo
  * @param array  $arrIdServiceFromName Le cache de relation name => id
  * @param string $serviceName          Le nom du service
  *
  * @return int L'identifiant du service
  */
-function getIdServiceFromName(Object &$pdo, array &$arrIdServiceFromName, string $serviceName): int {
+function getIdServiceFromName(array &$arrIdServiceFromName, string $serviceName): int {
+    $pdo = DB::getPdo();
+
     if (array_key_exists($serviceName, $arrIdServiceFromName)) {
         return $arrIdServiceFromName[$serviceName];
     }

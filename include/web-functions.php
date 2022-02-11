@@ -1,9 +1,11 @@
 <?php
 
+use App\Config;
+use App\DB;
+
 /**
  * Retourne les données du tableau a afficher
  *
- * @param PDO        $pdo            L'objet pdo
  * @param int        $etabId         L'identifiant de l'établissement sélectionné ou -1
  * @param bool       $serviceView    Un booléen pour savoir si l'on attends la vue service ou l'autre
  * @param int        $mois           L'identifiant du mois sur lequel on souhaite filtrer
@@ -14,8 +16,8 @@
  *
  * @return array Les données du tableau
  */
-function getDataTable(PDO &$pdo, int $etabId, bool $serviceView, int $mois, array $departement, array $etabType, array $etabType2, bool $showSimpleData): array {
-    $stats = getStats($pdo, $etabId, $serviceView, $mois, $departement, $etabType, $etabType2);
+function getDataTable(int $etabId, bool $serviceView, int $mois, array $departement, array $etabType, array $etabType2, bool $showSimpleData): array {
+    $stats = getStats($etabId, $serviceView, $mois, $departement, $etabType, $etabType2);
     $statsServices = $stats['statsServices'];
     $statsEtabs = $stats['statsEtabs'];
     $html = '';
@@ -56,7 +58,6 @@ function getDataTable(PDO &$pdo, int $etabId, bool $serviceView, int $mois, arra
 /**
  * Génère les données de la popup top
  *
- * @param Object     $pdo         L'objet pdo
  * @param int        $idService   L'identifiant du service
  * @param int        $idMois      L'identifiant du mois
  * @param array<int> $departement Les départements sur lesquels on souhaite filtrer, [] pour tous
@@ -65,7 +66,8 @@ function getDataTable(PDO &$pdo, int $etabId, bool $serviceView, int $mois, arra
  *
  * @return array Les données à afficher
  */
-function getTopData(Object &$pdo, int $idService, int $idMois, array $departement, array $etabType, array $etabType2): array {
+function getTopData(int $idService, int $idMois, array $departement, array $etabType, array $etabType2): array {
+    $pdo = DB::getPdo();
     $where = [];
     $args = ['id_mois' => $idMois, 'id_service' => $idService];
 
@@ -123,7 +125,6 @@ function getTopData(Object &$pdo, int $idService, int $idMois, array $departemen
 /**
  * Récupère l'établissement a partir de son SIREN
  *
- * @param Object $pdo   L'objet pdo
  * @param int    $mois  L'identifiant du mois sur lequel on souhaite filtrer
  * @param string $siren Le siren de l'établissement
  *
@@ -131,7 +132,8 @@ function getTopData(Object &$pdo, int $idService, int $idMois, array $departemen
  *
  * @param Exception Si on ne trouve pas l'établissement
  */
-function get_etablissement_id_by_siren(Object &$pdo, int $mois, string $siren): int {
+function get_etablissement_id_by_siren(int $mois, string $siren): int {
+    $pdo = DB::getPdo();
     $req = $pdo->prepare("
         SELECT e.id as id
         FROM etablissements as e
@@ -149,7 +151,6 @@ function get_etablissement_id_by_siren(Object &$pdo, int $mois, string $siren): 
 /**
  * Récupère les statistiques des différents services d'une établissement ou des différents établissement
  *
- * @param Object     $pdo         L'objet pdo
  * @param int        $etabId      L'identifiant de l'établissement sélectionné ou -1
  * @param bool       $serviceView Un booléen pour savoir si l'on attends la vue service ou l'autre
  * @param int        $mois        L'identifiant du mois sur lequel on souhaite filtrer
@@ -159,7 +160,8 @@ function get_etablissement_id_by_siren(Object &$pdo, int $mois, string $siren): 
  *
  * @return array Le tableau des résultats
  */
-function getStats(Object &$pdo, int $etabId, bool $serviceView, int $mois, array $departement, array $etabType, array $etabType2): array {
+function getStats(int $etabId, bool $serviceView, int $mois, array $departement, array $etabType, array $etabType2): array {
+    $pdo = DB::getPdo();
     $where = ["id_mois = :id_mois"];
     $statsServices = [];
     $statsEtabs = [];
@@ -274,12 +276,12 @@ function getStats(Object &$pdo, int $etabId, bool $serviceView, int $mois, array
 /**
  * Génère la liste des mois ordonnées et bien formaté
  *
- * @param Object $pdo   L'objet pdo
  * @param string $siren Le siren de l'établissement dont on souhaite afficher les mois, si présent
  *
  * @return array<string> La liste des mois
  */
-function getListMois(Object &$pdo, string $siren = null): array {
+function getListMois(string $siren = null): array {
+    $pdo = DB::getPdo();
     $sql = "";
 
     if (empty($siren)) {
@@ -305,12 +307,12 @@ function getListMois(Object &$pdo, string $siren = null): array {
 /**
  * Retourne la liste des types d'établissement
  *
- * @param Object $pdo  L'objet pdo
  * @param int    $mois L'identifiant du mois
  *
  * @return array<string> Un tableau de types d'établissements
  */
-function getTypesEtablissements(Object &$pdo, int $mois): array {
+function getTypesEtablissements(int $mois): array {
+    $pdo = DB::getPdo();
     // On ne récupère que les types d'établissement du mois actuel
     //  au cas où il y'aurait eu des types différents lors d'un autre mois
     $req = $pdo->prepare("
@@ -329,13 +331,13 @@ function getTypesEtablissements(Object &$pdo, int $mois): array {
 /**
  * Retourne la liste des types2 d'établissement
  *
- * @param Object     $pdo       L'objet pdo
  * @param int        $mois      L'identifiant du mois
  * @param array<int> $etabTypes Les types d'établissement à retourner
  *
  * @return array<string> Un tableau de types2 d'établissements
  */
-function getTypes2Etablissements(Object &$pdo, int $mois, array $etabTypes): array {
+function getTypes2Etablissements(int $mois, array $etabTypes): array {
+    $pdo = DB::getPdo();
     $where = "";
 
     if (count($etabTypes) !== 0) {
@@ -360,12 +362,12 @@ function getTypes2Etablissements(Object &$pdo, int $mois, array $etabTypes): arr
 /**
  * Retourne la liste des département en fonction des filtres
  *
- * @param Object     $pdo       L'objet pdo
  * @param int        $mois      L'identifiant du mois
  *
  * @return array<int> Un tableau des départements
  */
-function getDepartements(Object &$pdo, int $mois): array {
+function getDepartements(int $mois): array {
+    $pdo = DB::getPdo();
     /**
      * Converti l'élément "departement" du tableau en entier
      *
@@ -392,7 +394,6 @@ function getDepartements(Object &$pdo, int $mois): array {
 /**
  * Retourne la liste des établissements en fonction du/des types d'établissement si ils sont présents
  *
- * @param Object     $pdo          L'objet pdo
  * @param int        $mois         L'identifiant du mois
  * @param array<int> $etabTypes    Les types d'établissement à retourner
  * @param array<int> $etabTypes2   Les types d'établissement avancé à retourner
@@ -400,7 +401,8 @@ function getDepartements(Object &$pdo, int $mois): array {
  *
  * @return array<id, string> Un tableau d'établissements
  */
-function getEtablissements(Object &$pdo, int $mois, array $etabTypes, array $etabTypes2, array $departements): array {
+function getEtablissements(int $mois, array $etabTypes, array $etabTypes2, array $departements): array {
+    $pdo = DB::getPdo();
     $where = "";
 
     /**
@@ -485,12 +487,12 @@ function generateInClauseAndArgs(string $field, array $arrayElem, string $prefix
 /**
  * Affiche une exception comme il faut en fonction de l'env
  *
- * @param Exception $e   L'exception à afficher
- * @param string    $env L'env (prod, dev, ...)
+ * @param Exception $e L'exception à afficher
  */
-function showException(Exception $e, string $env = "prod"): void {
+function showException(Exception $e): void {
     http_response_code(500);
     echo "Server Error";
+    $env = (Config::getInstance())->get('env');
 
     // Si on est pas en prod, on affiche l'erreur, sinon on la log
     if ($env !== null && $env !== "prod") {
