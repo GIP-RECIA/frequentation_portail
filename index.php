@@ -13,7 +13,7 @@ function main(): void {
         $cas = Cas::getInstance();
         $cas->init();
         
-        if (isset($_REQUEST['logout'])) {
+        if (isset($_POST['logout'])) {
             $cas->logout();
         }
         
@@ -26,8 +26,8 @@ function main(): void {
         $mois = null;
         $listMois = getListMois($siren);
         
-        if (isset($_REQUEST["mois"])) {
-            $mois = intval($_REQUEST["mois"]);
+        if (isset($_POST["mois"])) {
+            $mois = intval($_POST["mois"]);
         // Si aucun mois n'est sélectionné, on prends le premier de la liste qui est le plus récent
         } else if (count($listMois) > 0) {
             $mois = intval($listMois[0]['id']);
@@ -38,7 +38,7 @@ function main(): void {
         $show_simple_data = $etablissement !== null && $role == "National_DIR";
         
         if ($etablissement !== null) {
-            $_REQUEST["etab"] = $etablissement;
+            $_POST["etab"] = $etablissement;
         }
         
         $etab = -1;
@@ -49,24 +49,24 @@ function main(): void {
         $serviceView = true;
         
         
-        if (isset($_REQUEST["etabType"])) {
-            $etabType = array_map('intval', $_REQUEST["etabType"]);
+        if (isset($_POST["etabType"])) {
+            $etabType = array_map('intval', $_POST["etabType"]);
         }
         
-        if (isset($_REQUEST["etabType2"])) {
-            $etabType2 = array_map('intval', $_REQUEST["etabType2"]);
+        if (isset($_POST["etabType2"])) {
+            $etabType2 = array_map('intval', $_POST["etabType2"]);
         }
         
-        if (isset($_REQUEST["departement"])) {
-            $departement = array_map('intval', $_REQUEST["departement"]);
+        if (isset($_POST["departement"])) {
+            $departement = array_map('intval', $_POST["departement"]);
         }
         
-        if (isset($_REQUEST["etab"])) {
-            $etab = intval($_REQUEST["etab"]);
+        if (isset($_POST["etab"])) {
+            $etab = intval($_POST["etab"]);
         }
         
-        if (isset($_REQUEST["resultType"])) {
-            $serviceView = $_REQUEST["resultType"] !== VIEW_ETABS;
+        if (isset($_POST["resultType"])) {
+            $serviceView = $_POST["resultType"] !== VIEW_ETABS;
         }
         
         $templateDate = [

@@ -13,22 +13,22 @@ function main(): void {
         $cas = Cas::getInstance();
         $cas->init();
 
-        $mois = $_REQUEST["mois"];
-        $serviceId = $_REQUEST["serviceId"];
+        $mois = $_POST["mois"];
+        $serviceId = $_POST["serviceId"];
         $departement = [];
         $etabType = [];
         $etabType2 = [];
 
-        if (isset($_REQUEST["departement"])) {
-            $departement = array_map('intval', $_REQUEST["departement"]);
+        if (isset($_POST["departement"])) {
+            $departement = array_map('intval', $_POST["departement"]);
         }
 
-        if (isset($_REQUEST["etabType"])) {
-            $etabType = array_map('intval', $_REQUEST["etabType"]);
+        if (isset($_POST["etabType"])) {
+            $etabType = array_map('intval', $_POST["etabType"]);
         }
 
-        if (isset($_REQUEST["etabType2"])) {
-            $etabType2 = array_map('intval', $_REQUEST["etabType2"]);
+        if (isset($_POST["etabType2"])) {
+            $etabType2 = array_map('intval', $_POST["etabType2"]);
         }
 
         if(!is_numeric($mois)) {
