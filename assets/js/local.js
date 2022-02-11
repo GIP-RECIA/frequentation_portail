@@ -127,7 +127,7 @@ $( document ).ready(function() {
                         const actualDepartement = $departement.val();
                         $departement.empty();
                         dataDepartements.forEach((val) => {
-                            $departement.append(new Option(val, val, false, actualDepartement.includes(val)))
+                            $departement.append(new Option(val, val, false, actualDepartement.includes(val.toString())))
                         });
                     }
 
