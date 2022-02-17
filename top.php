@@ -42,15 +42,7 @@ function main(): void {
         $mois = intval($mois);
         $serviceId = intval($serviceId);
         $templateDate = ['table' => getTopData($serviceId, $mois, $departement, $etabType, $etabType2)];
-        // le dossier ou on trouve les templates
-        $loader = new Twig\Loader\FilesystemLoader('templates');
-        // initialiser l'environnement Twig
-        $twig = new Twig\Environment($loader);
-        // load template
-        $template = $twig->load('top.html.twig');
-        // set template variables
-        // render template
-        echo $template->render($templateDate);
+        echo renderTwig('top.html.twig', $templateDate);
     } catch (Exception $e) {
         showException($e);
     }

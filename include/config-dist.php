@@ -21,6 +21,10 @@ return [
         'dn' => "cn=stats,ou=administrateurs,dc=esco-centre,dc=fr",
         'password' => "",
     ],
+    'twig' => [
+        'templatesDir' => 'templates',
+        'cacheDir' => 'cache',
+    ],
     'importDir' => '',
     'env' => "prod",
     'departments' => [18, 28, 36, 37, 41, 45],

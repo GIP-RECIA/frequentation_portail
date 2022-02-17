@@ -87,15 +87,7 @@ function main(): void {
             'table' => getDataTable($droitsUtilisateur, $etab, $serviceView, $mois, $departement, $etabType, $etabType2, $show_simple_data),
         ];
 
-        // le dossier ou on trouve les templates
-        $loader = new Twig\Loader\FilesystemLoader('templates');
-        // initialiser l'environnement Twig
-        $twig = new Twig\Environment($loader);
-        // load template
-        $template = $twig->load('index.html.twig');
-        // set template variables
-        // render template
-        echo $template->render($templateDate);
+        echo renderTwig('index.html.twig', $templateDate);
     } catch (Exception $e) {
         showException($e);
     }

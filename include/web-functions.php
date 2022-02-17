@@ -506,3 +506,30 @@ function showException(Exception $e): void {
         error_log($e->getMessage());
     }
 }
+
+/**
+ * Effectue un rendue twig
+ *
+ * @param string $template Le nom du fichier template
+ * @param array  $data     Le tableau des données a insérer dans le template
+ *
+ * @return string Les données générées
+ */
+function renderTwig(string $template, array $data = []): string {
+    $config = Config::getInstance();
+    $params = [];
+
+    if ($config->get('cacheDir') !== null && $config->get('env') === 'prod') {
+        $params['cache'] = $config->get('cacheDir');
+    }
+
+    // le dossier ou on trouve les templates
+    $loader = new Twig\Loader\FilesystemLoader('templates');
+    // initialiser l'environnement Twig
+    $twig = new Twig\Environment($loader, $params);
+    // load template
+    $template = $twig->load($template);
+    // set template variables
+    // render template
+    echo $template->render($data);
+}  

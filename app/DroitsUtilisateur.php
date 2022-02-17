@@ -21,12 +21,6 @@ class DroitsUtilisateur {
     /** @var string Le champ de l'uai */
     private const UAI = 'escouai';
 
-    /** @var boolean  */
-    private $isAdminLycee = false;
-
-    /** @var array */
-    private $isAdminCollege = [];
-
     /** @var array */
     private $tabSiren = [];
 
@@ -82,12 +76,14 @@ class DroitsUtilisateur {
         $sr = ldap_search($this->ldap, $dn, "(uid={$uid})", self::ATTR_A_RECUP_USER);
         $userInfos = ldap_get_entries($this->ldap, $sr);
         $groupsAdminCollege = [];
+        $isAdminLycee = false;
+        $isAdminCollege = [];
 
         // Construction du tableau de la liste des groupes admin de collège a tester
         //  et affectation à false du fait d'être admin par un de ces groupes
         foreach ($config->get('departments') as $department) {
             $groupsAdminCollege[$department] = str_replace("%DEP%", $department, self::GRP_ADMIN_COLLEGE);
-            $this->isAdminCollege[$department] = false;
+            $isAdminCollege[$department] = false;
         }
 
         if ($userInfos === false) {
@@ -103,13 +99,13 @@ class DroitsUtilisateur {
 
             // Enregistre si l'utilisateur est admin pour les lycées
             if ($groupe === self::GRP_ADMIN_LYCEE) {
-                $this->isAdminLycee = true;
+                $isAdminLycee = true;
             }
 
             // Enregistre si l'utilisateur est admin pour les collèges d'un département
             foreach ($groupsAdminCollege as $department => $grpAdminCollegeDep) {
                 if ($groupe === $grpAdminCollegeDep) {
-                    $this->isAdminCollege[$department] = true;
+                    $isAdminCollege[$department] = true;
                 }
             }
         }
@@ -120,10 +116,10 @@ class DroitsUtilisateur {
         // * sinon erreur
         $dn_base = explode(",", $dn, 2);
         $dn = "ou=structures,{$dn_base[1]}";
-        $this->addSirensIfAdmin($this->isAdminLycee,
+        $this->addSirensIfAdmin($isAdminLycee,
             "(entstructuretypestruct=LYCEE *)", $dn, "Lycées non trouvés dans le ldap");
 
-        foreach ($this->isAdminCollege as $department => $isAdmin) {
+        foreach ($isAdminCollege as $department => $isAdmin) {
             $this->addSirensIfAdmin($isAdmin,
                 "(entstructuretypestruct=COLLEGE)(entstructureuai=0{$department}*)", $dn,
                 "Collèges pour le département {$department} non trouvés dans le ldap");
