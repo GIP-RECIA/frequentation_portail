@@ -1,29 +1,36 @@
-function storageAvailable(type) {
-    try {
-        var storage = window[type],
-            x = '__storage_test__';
-        storage.setItem(x, x);
-        storage.removeItem(x);
-        return true;
-    }
-    catch(e) {
-        return e instanceof DOMException && (
-            // everything except Firefox
-            e.code === 22 ||
-            // Firefox
-            e.code === 1014 ||
-            // test name field too, because code might not be present
-            // everything except Firefox
-            e.name === 'QuotaExceededError' ||
-            // Firefox
-            e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
-            // acknowledge QuotaExceededError only if there's something already stored
-            storage.length !== 0;
-    }
-}
+import 'jquery';
+import 'bootstrap';
+import 'datatables.net';
+import "datatables.net-buttons";
+import "datatables.net-buttons/js/buttons.html5.js";
+import * as JSZip from "jszip";
+import 'select2';
+window.JSZip = JSZip;
 
 document.addEventListener('DOMContentLoaded', function () {
     const table = document.getElementById("result");
+    const storageAvailable = function(type) {
+        try {
+            var storage = window[type],
+                x = '__storage_test__';
+            storage.setItem(x, x);
+            storage.removeItem(x);
+            return true;
+        } catch(e) {
+            return e instanceof DOMException && (
+                // everything except Firefox
+                e.code === 22 ||
+                // Firefox
+                e.code === 1014 ||
+                // test name field too, because code might not be present
+                // everything except Firefox
+                e.name === 'QuotaExceededError' ||
+                // Firefox
+                e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+                // acknowledge QuotaExceededError only if there's something already stored
+                storage.length !== 0;
+        }
+    }
 
     document.querySelectorAll('.switch-auto').forEach(
         (currentSwitch) => {
@@ -58,8 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
     )
 });
 
-
-$( document ).ready(function() {
+jQuery(function() {
     const $mois = $('#mois');
     const $departement = $('#departement');
     const $etabType = $('#etabType');
@@ -85,7 +91,7 @@ $( document ).ready(function() {
         return jQuery.fn.dataTableExt.oSort["percent-asc"](y, x);
     };
 
-    $('.top20').click (function () {
+    $('.top20').on("click", function () {
         const serviceTitle = $(this).parent().contents().get(2).nodeValue.trim();
         formValues.serviceId = $(this).attr('data-serviceid');
         $.ajax({
@@ -168,10 +174,10 @@ $( document ).ready(function() {
         }
     };
 
-    $mois.change(reloadFilters);
-    $departement.change(reloadFilters);
-    $etabType.change(reloadFilters);
-    $etabType2.change(reloadFilters);
+    $mois.on("change", reloadFilters);
+    $departement.on("change", reloadFilters);
+    $etabType.on("change", reloadFilters);
+    $etabType2.on("change", reloadFilters);
 
     $('#result').DataTable({
         autoWidth: false,
@@ -215,19 +221,20 @@ $( document ).ready(function() {
         ]
     });
 
-    $('input:radio[name="vue"]').change(function(){
+    $('input:radio[name="vue"]').on("change", function(){
         if ($(this).is(':checked')) {
             $('#resultType').val($(this).val());
-            $('#filterBtn').click();
+            $('#filterBtn').trigger("click");
         }
     });
 
-    $('#reset').click (function () {
+    $('#reset').on("click", function () {
         reload = false;
-        $etabType.val(null);
-        $etab.val(-1);
         $mois.val($('#mois option:eq(0)')[0].value);
         $(location).attr('href','/');
+        $etabType.val(null);
+        $etabType2.val(null);
+        $etab.val(-1);
     });
 
     $etab.select2({

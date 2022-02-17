@@ -1,2 +1,2 @@
-RedirectMatch 403 /(README.md|composer\.(json|lock)|import.php|LICENSE)$
-RedirectMatch 403 /(\.git|vendor|data|include|app|cache)/.*$
+RedirectMatch 403 /(README.md|composer\.(json|lock)|package(.json|-lock.json)|import.php|LICENSE)$
+RedirectMatch 403 /(\.git|vendor|nodes_modules|data|include|app|cache|src)/.*$

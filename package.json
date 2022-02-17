@@ -1,0 +1,39 @@
+{
+  "name": "frequentation_portail",
+  "version": "1.0.0",
+  "description": "## Prérequis technique",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-dev": "NODE_ENV=development webpack",
+    "build-prod": "NODE_ENV=production webpack",
+    "watch": "webpack --watch",
+    "serve": "webpack serve --node-env=development"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GIP-RECIA/frequentation_portail.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/GIP-RECIA/frequentation_portail/issues"
+  },
+  "homepage": "https://github.com/GIP-RECIA/frequentation_portail#readme",
+  "devDependencies": {
+    "uglifyjs-webpack-plugin": "^2.2.0",
+    "webpack": "^5.69.1",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-server": "^4.7.4"
+  },
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "datatables.net": "^1.11.4",
+    "datatables.net-buttons": "^2.2.2",
+    "datatables.net-dt": "^1.11.4",
+    "jquery": "^3.6.0",
+    "jszip": "^3.7.1",
+    "select2": "^4.1.0-rc.0"
+  }
+}
