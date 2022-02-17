@@ -125,33 +125,42 @@ $( document ).ready(function() {
 
                     if (dataDepartements != undefined) {
                         const actualDepartement = $departement.val();
+                        const selected = dataDepartements.length == 1;
                         $departement.empty();
                         dataDepartements.forEach((val) => {
-                            $departement.append(new Option(val, val, false, actualDepartement.includes(val.toString())))
+                            $departement.append(new Option(val, val, false, selected ? true : actualDepartement.includes(val.toString())))
                         });
                     }
 
                     if (dataTypes != undefined) {
                         const actualType = $etabType.val();
+                        const selected = dataTypes.length == 1;
                         $etabType.empty();
                         dataTypes.forEach((val) => {
-                            $etabType.append(new Option(val['nom'], val['id'], false, actualType.includes(val['id'])))
+                            $etabType.append(new Option(val['nom'], val['id'], false, selected ? true : actualType.includes(val['id'])))
                         });
                     }
 
                     if (dataTypes2 != undefined) {
                         const actualType2 = $etabType2.val();
+                        const selected = dataTypes2.length == 1;
                         $etabType2.empty();
                         dataTypes2.forEach((val) => {
-                            $etabType2.append(new Option(val['nom'], val['id'], false, actualType2.includes(val['id'])))
+                            $etabType2.append(new Option(val['nom'], val['id'], false, selected ? true : actualType2.includes(val['id'])))
                         });
                     }
 
                     if (dataEtabs != undefined) {
                         const actualEtab = $etab.val();
-                        $etab.empty().append(new Option("Tous les établissements", "-1", true, actualEtab == -1))
+                        const selected = dataEtabs.length == 1;
+                        $etab.empty();
+                        
+                        if (selected == false) {
+                            $etab.append(new Option("Tous les établissements", "-1", true, actualEtab == -1))
+                        }
+
                         dataEtabs.forEach((val) => {
-                            $etab.append(new Option(val['nom'], val['id'], false, actualEtab == val['id']))
+                            $etab.append(new Option(val['nom'], val['id'], false, selected ? true : actualEtab == val['id']))
                         });
                     }
                 }

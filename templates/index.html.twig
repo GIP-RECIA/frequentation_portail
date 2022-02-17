@@ -13,7 +13,7 @@
         <script src="./assets/js/jszip.min.js"></script>
         <script src="./assets/js/buttons.html5.js"></script>
         <script src="./assets/js/button.print.js"></script>
-        <script src="./assets/js/local.js?11"></script>
+        <script src="./assets/js/local.js?12"></script>
 
 
         <link rel="stylesheet" href="./assets/css/bootstrap.css">
@@ -60,7 +60,7 @@
                             <select id="departement" name="departement[]" class="form-control js-select2-mutliple departement"
                                     multiple="multiple" style="width:200px;" data-placeholder="Tous les départements" data-pos="2">
                                 {% for forDepartement in listDepartements %}
-                                    <option {% if forDepartement in departement %}selected {% endif %}value="{{ forDepartement }}">{{ forDepartement }}</option>
+                                    <option {% if forDepartement in departement or loop.length == 1 %}selected {% endif %}value="{{ forDepartement }}">{{ forDepartement }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -69,7 +69,7 @@
                             <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple type"
                                     multiple="multiple" style="width:150px;" data-placeholder="Tous les types" data-pos="3">
                                 {% for forTypeEtab in listTypesEtab %}
-                                    <option {% if forTypeEtab.id in typesEtab %}selected {% endif %}value="{{ forTypeEtab.id }}">{{ forTypeEtab.nom }}</option>
+                                    <option {% if forTypeEtab.id in typesEtab or loop.length == 1 %}selected {% endif %}value="{{ forTypeEtab.id }}">{{ forTypeEtab.nom }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -78,7 +78,7 @@
                             <select id="etabType2" name="etabType2[]" class="form-control js-select2-mutliple type2"
                                     multiple="multiple" style="width:450px;" data-placeholder="Tous les types avancés" data-pos="4">
                                 {% for forType2Etab in listTypes2Etab %}
-                                    <option {% if forType2Etab.id in types2Etab %}selected {% endif %}value="{{ forType2Etab.id }}">{{ forType2Etab.nom }}</option>
+                                    <option {% if forType2Etab.id in types2Etab or loop.length == 1 %}selected {% endif %}value="{{ forType2Etab.id }}">{{ forType2Etab.nom }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -89,7 +89,7 @@
                                 {% if not etabReadOnly %}<option value="-1">Tous les établissements</option>{% endif %}
                                 {% for forEtab in listEtabs %}
                                     {% if (not etabReadOnly) or forEtab.id == etab %}
-                                    <option {% if forEtab.id == etab %}selected {% endif %}value="{{ forEtab.id }}">{{ forEtab.nom }}</option>
+                                    <option {% if forEtab.id == etab or loop.length == 1 %}selected {% endif %}value="{{ forEtab.id }}">{{ forEtab.nom }}</option>
                                     {% endif %}
                                 {% endfor %}
                             </select>
