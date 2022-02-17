@@ -62,42 +62,19 @@ function getDataTable(
 /**
  * Génère les données de la popup top
  *
- * @param int        $idService   L'identifiant du service
- * @param int        $idMois      L'identifiant du mois
- * @param array<int> $departement Les départements sur lesquels on souhaite filtrer, [] pour tous
- * @param array<int> $etabType    Les types d'établissement sur lesquels on souhaite filtrer, [] pour tous
- * @param array<int> $etabType2   Les type2s d'établissement sur lesquels on souhaite filtrer, [] pour tous
+ * @param DroitsUtilisateur $droitsUtilisateur Les droits utilisateur
+ * @param int               $idService         L'identifiant du service
+ * @param int               $idMois            L'identifiant du mois
+ * @param array<int>        $departement       Les départements sur lesquels on souhaite filtrer, [] pour tous
+ * @param array<int>        $etabType          Les types d'établissement sur lesquels on souhaite filtrer, [] pour tous
+ * @param array<int>        $etabType2         Les type2s d'établissement sur lesquels on souhaite filtrer, [] pour tous
  *
  * @return array Les données à afficher
  */
-function getTopData(int $idService, int $idMois, array $departement, array $etabType, array $etabType2): array {
+function getTopData(DroitsUtilisateur $droitsUtilisateur, int $idService, int $idMois,
+        array $departement, array $etabType, array $etabType2): array {
     $pdo = DB::getPdo();
-    $where = [];
-    $args = ['id_mois' => $idMois, 'id_service' => $idService];
-
-    if ($departement !== []) {
-        $res = DB::generateInClauseAndArgs("e.departement", $departement, 'dep');
-        $where[] = $res[0];
-        $args = array_merge($args, $res[1]);
-    }
-
-    if ($etabType !== []) {
-        $res = DB::generateInClauseAndArgs("e.id_type", $etabType, "etun");
-        $where[] = $res[0];
-        $args = array_merge($args, $res[1]);
-    }
-
-    if ($etabType2 !== []) {
-        $res = DB::generateInClauseAndArgs("e.id_type2", $etabType2, "etdeux");
-        $where[] = $res[0];
-        $args = array_merge($args, $res[1]);
-    }
-
-    if ($where !== []) {
-        $where = 'AND '.implode(' AND ', $where);
-    } else {
-        $where = '';
-    }
+    $res = generateWhereInFilters($droitsUtilisateur, $idMois, $departement, $etabType, $etabType2);
 
     $sql =
         "SELECT
@@ -115,13 +92,12 @@ function getTopData(int $idService, int $idMois, array $departement, array $etab
         INNER JOIN stats_etabs as se ON e.id = se.id_etablissement
         WHERE
             s.id_mois = :id_mois
-            AND se.id_mois = :id_mois
             AND s.id_service = :id_service
-            ${where}
+            AND {$res[0]}
         ORDER BY eleves/eleve__total_pers desc
         LIMIT 20";
     $req = $pdo->prepare($sql);
-    $req->execute($args);
+    $req->execute(array_merge(['id_service' => $idService], $res[1]));
 
     return $req->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -531,5 +507,5 @@ function renderTwig(string $template, array $data = []): string {
     $template = $twig->load($template);
     // set template variables
     // render template
-    echo $template->render($data);
-}  
+    return $template->render($data);
+}

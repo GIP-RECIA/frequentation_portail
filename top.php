@@ -4,6 +4,7 @@ require 'vendor/autoload.php';
 require 'include/web-functions.php';
 
 use App\Cas;
+use App\DroitsUtilisateur;
 
 const VIEW_SERVICES = "services";
 const VIEW_ETABS = "etabs";
@@ -41,7 +42,8 @@ function main(): void {
         
         $mois = intval($mois);
         $serviceId = intval($serviceId);
-        $templateDate = ['table' => getTopData($serviceId, $mois, $departement, $etabType, $etabType2)];
+        $droitsUtilisateur = new DroitsUtilisateur();
+        $templateDate = ['table' => getTopData($droitsUtilisateur, $serviceId, $mois, $departement, $etabType, $etabType2)];
         echo renderTwig('top.html.twig', $templateDate);
     } catch (Exception $e) {
         showException($e);
