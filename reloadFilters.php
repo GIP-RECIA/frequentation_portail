@@ -4,6 +4,7 @@ require 'vendor/autoload.php';
 require 'include/web-functions.php';
 
 use App\Cas;
+use App\DroitsUtilisateur;
 
 const VIEW_SERVICES = "services";
 const VIEW_ETABS = "etabs";
@@ -42,16 +43,17 @@ function main(): void {
         $mois = intval($mois);
         $pos = intval($pos);
         $res = [];
+        $droitsUtilisateur = new DroitsUtilisateur();
 
         switch ($pos) {
             case 1:
-                $res['departements'] = getDepartements($mois);
-                $res['types'] = getTypesEtablissements($mois);
-            case 3:
-                $res['types2'] = getTypes2Etablissements($mois, $etabType);
+                $res['departements'] = getDepartements($droitsUtilisateur, $mois);
             case 2:
+                $res['types'] = getTypesEtablissements($droitsUtilisateur, $mois, $departement);
+            case 3:
+                $res['types2'] = getTypes2Etablissements($droitsUtilisateur, $mois, $departement, $etabType);
             case 4:
-                $res['etabs'] = getEtablissements($mois, $etabType, $etabType2, $departement);
+                $res['etabs'] = getEtablissements($droitsUtilisateur, $mois, $departement, $etabType, $etabType2);
         }
 
         header('Content-type: application/json');

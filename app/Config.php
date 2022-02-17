@@ -30,15 +30,24 @@ class Config {
     /**
      *  Permet d'obtenir la valeur de la configuration
      *
-     *  @param $key string clef à récupérer
+     *  @param string $key1 clé à récupérer
+     *  @param string $key2 sous clé optionnelle à récupérer
      *
      *  @return mixed
      **/
-    public function get($key) {
-        if (!isset($this->settings[$key])) {
+    public function get(string $key1, string $key2 = null) {
+        if (!isset($this->settings[$key1])) {
             return null;
         }
 
-        return $this->settings[$key];
+        if ($key2 !== null) {
+            if (!isset($this->settings[$key1][$key2])) {
+                return null;
+            }
+
+            return $this->settings[$key1][$key2];
+        }
+        
+        return $this->settings[$key1];
     }
 }

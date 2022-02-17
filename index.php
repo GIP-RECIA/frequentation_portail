@@ -4,6 +4,7 @@ require 'vendor/autoload.php';
 require 'include/web-functions.php';
 
 use App\Cas;
+use App\DroitsUtilisateur;
 
 const VIEW_SERVICES = "services";
 const VIEW_ETABS = "etabs";
@@ -47,7 +48,7 @@ function main(): void {
         $etabType = [];
         $etabType2 = [];
         $serviceView = true;
-        
+        $droitsUtilisateur = new DroitsUtilisateur();
         
         if (isset($_POST["etabType"])) {
             $etabType = array_map('intval', $_POST["etabType"]);
@@ -74,17 +75,16 @@ function main(): void {
             'etabReadOnly' => $etabReadOnly,
             'viewService' => $serviceView,
             'listMois' => $listMois,
-            'listDepartements' => getDepartements($mois),
-            'listTypesEtab' => getTypesEtablissements($mois),
-            'listTypes2Etab' => getTypes2Etablissements($mois, $etabType),
-            'listEtabs' => getEtablissements($mois, $etabType, $etabType2, $departement),
+            'listDepartements' => getDepartements($droitsUtilisateur, $mois),
+            'listTypesEtab' => getTypesEtablissements($droitsUtilisateur, $mois, $departement),
+            'listTypes2Etab' => getTypes2Etablissements($droitsUtilisateur, $mois, $departement, $etabType),
+            'listEtabs' => getEtablissements($droitsUtilisateur, $mois, $departement, $etabType, $etabType2),
             'mois' => $mois,
             'departement' => $departement,
             'typesEtab' => $etabType,
             'types2Etab' => $etabType2,
             'etab' => $etab,
-            // TODO: ajouter les départements et les etabTypes2 dans cette fonction pour filtrer
-            'table' => getDataTable($etab, $serviceView, $mois, $departement, $etabType, $etabType2, $show_simple_data),
+            'table' => getDataTable($droitsUtilisateur, $etab, $serviceView, $mois, $departement, $etabType, $etabType2, $show_simple_data),
         ];
 
         // le dossier ou on trouve les templates

@@ -2,22 +2,26 @@
 
 use App\Config;
 use App\DB;
+use App\DroitsUtilisateur;
 
 /**
  * Retourne les données du tableau a afficher
  *
- * @param int        $etabId         L'identifiant de l'établissement sélectionné ou -1
- * @param bool       $serviceView    Un booléen pour savoir si l'on attends la vue service ou l'autre
- * @param int        $mois           L'identifiant du mois sur lequel on souhaite filtrer
- * @param array<int> $departement    Les départements sur lesquels on souhaite filtrer, [] pour tous
- * @param array<int> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, [] pour tous
- * @param array<int> $etabType2      Les type2s d'établissement sur lesquels on souhaite filtrer, [] pour tous
- * @param bool       $showSimpleData Permet de savoir si il faut afficher les boutons top
+ * @param DroitsUtilisateur $droitsUtilisateur Les droits utilisateur
+ * @param int               $etabId            L'identifiant de l'établissement sélectionné ou -1
+ * @param bool              $serviceView       Un booléen pour savoir si l'on attends la vue service ou l'autre
+ * @param int               $mois              L'identifiant du mois sur lequel on souhaite filtrer
+ * @param array<int>        $departement       Les départements sur lesquels on souhaite filtrer, [] pour tous
+ * @param array<int>        $etabType          Les types d'établissement sur lesquels on souhaite filtrer, [] pour tous
+ * @param array<int>        $etabType2         Les type2s d'établissement sur lesquels on souhaite filtrer, [] pour tous
+ * @param bool              $showSimpleData    Permet de savoir si il faut afficher les boutons top
  *
  * @return array Les données du tableau
  */
-function getDataTable(int $etabId, bool $serviceView, int $mois, array $departement, array $etabType, array $etabType2, bool $showSimpleData): array {
-    $stats = getStats($etabId, $serviceView, $mois, $departement, $etabType, $etabType2);
+function getDataTable(
+        DroitsUtilisateur $droitsUtilisateur, int $etabId, bool $serviceView, int $mois, array $departement,
+        array $etabType, array $etabType2, bool $showSimpleData): array {
+    $stats = getStats($droitsUtilisateur, $etabId, $serviceView, $mois, $departement, $etabType, $etabType2);
     $statsServices = $stats['statsServices'];
     $statsEtabs = $stats['statsEtabs'];
     $html = '';
@@ -72,19 +76,19 @@ function getTopData(int $idService, int $idMois, array $departement, array $etab
     $args = ['id_mois' => $idMois, 'id_service' => $idService];
 
     if ($departement !== []) {
-        $res = generateInClauseAndArgs("e.departement", $departement, 'dep');
+        $res = DB::generateInClauseAndArgs("e.departement", $departement, 'dep');
         $where[] = $res[0];
         $args = array_merge($args, $res[1]);
     }
 
     if ($etabType !== []) {
-        $res = generateInClauseAndArgs("e.id_type", $etabType, "etun");
+        $res = DB::generateInClauseAndArgs("e.id_type", $etabType, "etun");
         $where[] = $res[0];
         $args = array_merge($args, $res[1]);
     }
 
     if ($etabType2 !== []) {
-        $res = generateInClauseAndArgs("e.id_type2", $etabType2, "etdeux");
+        $res = DB::generateInClauseAndArgs("e.id_type2", $etabType2, "etdeux");
         $where[] = $res[0];
         $args = array_merge($args, $res[1]);
     }
@@ -151,16 +155,19 @@ function get_etablissement_id_by_siren(int $mois, string $siren): int {
 /**
  * Récupère les statistiques des différents services d'une établissement ou des différents établissement
  *
- * @param int        $etabId      L'identifiant de l'établissement sélectionné ou -1
- * @param bool       $serviceView Un booléen pour savoir si l'on attends la vue service ou l'autre
- * @param int        $mois        L'identifiant du mois sur lequel on souhaite filtrer
- * @param array<int> $departement    Les départements sur lesquels on souhaite filtrer, [] pour tous
- * @param array<int> $etabType       Les types d'établissement sur lesquels on souhaite filtrer, [] pour tous
- * @param array<int> $etabType2      Les type2s d'établissement sur lesquels on souhaite filtrer, [] pour tous
+ * @param DroitsUtilisateur $droitsUtilisateur Les droits utilisateur
+ * @param int               $etabId            L'identifiant de l'établissement sélectionné ou -1
+ * @param bool              $serviceView       Un booléen pour savoir si l'on attends la vue service ou l'autre
+ * @param int               $mois              L'identifiant du mois sur lequel on souhaite filtrer
+ * @param array<int>        $departement       Les départements sur lesquels on souhaite filtrer, [] pour tous
+ * @param array<int>        $etabType          Les types d'établissement sur lesquels on souhaite filtrer, [] pour tous
+ * @param array<int>        $etabType2         Les type2s d'établissement sur lesquels on souhaite filtrer, [] pour tous
  *
  * @return array Le tableau des résultats
  */
-function getStats(int $etabId, bool $serviceView, int $mois, array $departement, array $etabType, array $etabType2): array {
+function getStats(
+        DroitsUtilisateur $droitsUtilisateur, int $etabId, bool $serviceView, int $mois, array $departement,
+        array $etabType, array $etabType2): array {
     $pdo = DB::getPdo();
     $where = ["id_mois = :id_mois"];
     $statsServices = [];
@@ -177,22 +184,26 @@ function getStats(int $etabId, bool $serviceView, int $mois, array $departement,
     }
 
     if ($departement !== []) {
-        $res = generateInClauseAndArgs("%alias%.departement", $departement, 'dep');
+        $res = DB::generateInClauseAndArgs("%alias%.departement", $departement, 'dep');
         $where[] = $res[0];
         $args = array_merge($args, $res[1]);
     }
 
     if ($etabType !== []) {
-        $res = generateInClauseAndArgs("%alias%.id_type", $etabType, "etun");
+        $res = DB::generateInClauseAndArgs("%alias%.id_type", $etabType, "etun");
         $where[] = $res[0];
         $args = array_merge($args, $res[1]);
     }
 
     if ($etabType2 !== []) {
-        $res = generateInClauseAndArgs("%alias%.id_type2", $etabType2, "etdeux");
+        $res = DB::generateInClauseAndArgs("%alias%.id_type2", $etabType2, "etdeux");
         $where[] = $res[0];
         $args = array_merge($args, $res[1]);
     }
+
+    $res = DB::generateInClauseAndArgs("%alias%.siren", $droitsUtilisateur->getTabSiren(), "siren");
+    $where[] = $res[0];
+    $args = array_merge($args, $res[1]);
 
     $where = implode(' AND ', $where);
 
@@ -305,68 +316,14 @@ function getListMois(string $siren = null): array {
 }
 
 /**
- * Retourne la liste des types d'établissement
+ * Retourne la liste des département en fonction du mois
  *
- * @param int    $mois L'identifiant du mois
- *
- * @return array<string> Un tableau de types d'établissements
- */
-function getTypesEtablissements(int $mois): array {
-    $pdo = DB::getPdo();
-    // On ne récupère que les types d'établissement du mois actuel
-    //  au cas où il y'aurait eu des types différents lors d'un autre mois
-    $req = $pdo->prepare("
-        SELECT t.id as id, t.nom as nom
-        FROM types as t
-        INNER JOIN etablissements as e ON e.id_type = t.id
-        INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
-        WHERE se.id_mois = :id_mois
-        GROUP BY t.id
-        ORDER BY t.nom asc");
-    $req->execute(['id_mois' => $mois]);
-
-    return $req->fetchAll(PDO::FETCH_ASSOC);
-}
-
-/**
- * Retourne la liste des types2 d'établissement
- *
- * @param int        $mois      L'identifiant du mois
- * @param array<int> $etabTypes Les types d'établissement à retourner
- *
- * @return array<string> Un tableau de types2 d'établissements
- */
-function getTypes2Etablissements(int $mois, array $etabTypes): array {
-    $pdo = DB::getPdo();
-    $where = "";
-
-    if (count($etabTypes) !== 0) {
-        $where = "AND ".generateInClause("e.id_type", $etabTypes);
-    }
-
-    // On ne récupère que les types2 d'établissement du mois actuel et des types actuel
-    //  au cas où il y'aurait eu des types2 différents lors d'un autre mois
-    $req = $pdo->prepare("
-        SELECT t.id as id, t.nom as nom
-        FROM types2 as t
-        INNER JOIN etablissements as e ON e.id_type2 = t.id
-        INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
-        WHERE se.id_mois = ? ${where}
-        GROUP BY t.id
-        ORDER BY t.nom asc");
-    $req->execute(array_merge([$mois], $etabTypes));
-
-    return $req->fetchAll(PDO::FETCH_ASSOC);
-}
-
-/**
- * Retourne la liste des département en fonction des filtres
- *
- * @param int        $mois      L'identifiant du mois
+ * @param DroitsUtilisateur $droitsUtilisateur Les droits utilisateur
+ * @param int               $mois              L'identifiant du mois
  *
  * @return array<int> Un tableau des départements
  */
-function getDepartements(int $mois): array {
+function getDepartements(DroitsUtilisateur $droitsUtilisateur, int $mois): array {
     $pdo = DB::getPdo();
     /**
      * Converti l'élément "departement" du tableau en entier
@@ -379,31 +336,92 @@ function getDepartements(int $mois): array {
         return intval($arr['departement']);
     };
     
+    $res = generateWhereInFilters($droitsUtilisateur, $mois);
+    
     $req = $pdo->prepare("
         SELECT e.departement as departement
         FROM etablissements as e
         INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
-        WHERE se.id_mois = :mois
+        WHERE {$res[0]}
         GROUP BY e.departement
         ORDER BY e.departement");
-    $req->execute(array_merge(['mois' => $mois]));
+    $req->execute($res[1]);
 
     return array_map($func, $req->fetchAll(PDO::FETCH_ASSOC));
 }
 
 /**
+ * Retourne la liste des types d'établissement
+ *
+ * @param DroitsUtilisateur $droitsUtilisateur Les droits utilisateur
+ * @param int               $mois              L'identifiant du mois
+ * @param array<int>        $departements      Les départements dont on souhaite les établissements
+ *
+ * @return array<string> Un tableau de types d'établissements
+ */
+function getTypesEtablissements(DroitsUtilisateur $droitsUtilisateur, int $mois, array $departements): array {
+    $pdo = DB::getPdo();
+    
+    $res = generateWhereInFilters($droitsUtilisateur, $mois, $departements);
+
+    // On ne récupère que les types d'établissement du mois actuel
+    //  au cas où il y'aurait eu des types différents lors d'un autre mois
+    $req = $pdo->prepare("
+        SELECT t.id as id, t.nom as nom
+        FROM types as t
+        INNER JOIN etablissements as e ON e.id_type = t.id
+        INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
+        WHERE {$res[0]}
+        GROUP BY t.id
+        ORDER BY t.nom asc");
+    $req->execute($res[1]);
+
+    return $req->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Retourne la liste des types2 d'établissement
+ *
+ * @param DroitsUtilisateur $droitsUtilisateur Les droits utilisateur
+ * @param int               $mois              L'identifiant du mois
+ * @param array<int>        $departements      Les départements dont on souhaite les établissements
+ * @param array<int>        $etabTypes         Les types d'établissement à retourner
+ *
+ * @return array<string> Un tableau de types2 d'établissements
+ */
+function getTypes2Etablissements(DroitsUtilisateur $droitsUtilisateur, int $mois, array $departements, array $etabTypes): array {
+    $pdo = DB::getPdo();
+    $res = generateWhereInFilters($droitsUtilisateur, $mois, $departements, $etabTypes);
+
+    // On ne récupère que les types2 d'établissement du mois actuel et des types actuel
+    //  au cas où il y'aurait eu des types2 différents lors d'un autre mois
+    $req = $pdo->prepare("
+        SELECT t.id as id, t.nom as nom
+        FROM types2 as t
+        INNER JOIN etablissements as e ON e.id_type2 = t.id
+        INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
+        WHERE {$res[0]}
+        GROUP BY t.id
+        ORDER BY t.nom asc");
+    $req->execute($res[1]);
+
+    return $req->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
  * Retourne la liste des établissements en fonction du/des types d'établissement si ils sont présents
  *
- * @param int        $mois         L'identifiant du mois
- * @param array<int> $etabTypes    Les types d'établissement à retourner
- * @param array<int> $etabTypes2   Les types d'établissement avancé à retourner
- * @param array<int> $departements Les départements dont on souhaite les établissements
+ * @param DroitsUtilisateur $droitsUtilisateur Les droits utilisateur
+ * @param int               $mois              L'identifiant du mois
+ * @param array<int>        $departements      Les départements dont on souhaite les établissements
+ * @param array<int>        $etabTypes         Les types d'établissement à retourner
+ * @param array<int>        $etabTypes2        Les types d'établissement avancé à retourner
  *
  * @return array<id, string> Un tableau d'établissements
  */
-function getEtablissements(int $mois, array $etabTypes, array $etabTypes2, array $departements): array {
+function getEtablissements(DroitsUtilisateur $droitsUtilisateur, int $mois, array $departements, array $etabTypes, array $etabTypes2): array {
     $pdo = DB::getPdo();
-    $where = "";
+    $res = generateWhereInFilters($droitsUtilisateur, $mois, $departements, $etabTypes, $etabTypes2);
 
     /**
      * Converti l'élément "id" du tableau en entier
@@ -417,71 +435,56 @@ function getEtablissements(int $mois, array $etabTypes, array $etabTypes2, array
 
         return $arr;
     };
-
-    if (count($etabTypes) !== 0) {
-        $where = " AND ".generateInClause("e.id_type", $etabTypes);
-    }
-
-    if (count($etabTypes2) !== 0) {
-        $where .= " AND ".generateInClause("e.id_type2", $etabTypes2);
-    }
-
-    if (count($departements) !== 0) {
-        $where .= " AND ".generateInClause("e.departement", $departements);
-    }
     
     $req = $pdo->prepare("
         SELECT e.id as id, CONCAT(IFNULL(e.uai, '?'), ' - ', e.nom) as nom
         FROM etablissements as e
         INNER JOIN stats_etabs as se ON se.id_etablissement = e.id
-        WHERE se.id_mois = ? ${where}
+        WHERE {$res[0]}
         ORDER BY e.nom");
-    $req->execute(array_merge([$mois], $etabTypes, $etabTypes2, $departements));
+    $req->execute($res[1]);
 
     return array_map($func, $req->fetchAll(PDO::FETCH_ASSOC));
 }
 
 /**
- * Génère une clause in pour une requête préparé
+ * Retourne la clause where et les arguments des filtres
  *
- * @param string $field     Le nom du champ sur lequel se fait le in
- * @param array  $arrayElem Le tableau des éléments du in
+ * @param DroitsUtilisateur $droitsUtilisateur Les droits utilisateur
+ * @param int               $mois              L'identifiant du mois
+ * @param array<int>        $departements      Les départements
+ * @param array<int>        $etabTypes         Les types d'établissement
+ * @param array<int>        $etabTypes2        Les types d'établissement avancé
  *
- * @return string La clause in sous forme de string paramétré
+ * @return array<id, string> Un tableau d'établissements
  */
-function generateInClause(string $field, array $arrayElem): string {
-    return "{$field} IN (".str_repeat('?,', count($arrayElem) - 1) . "?)";
-}
+function generateWhereInFilters(DroitsUtilisateur $droitsUtilisateur, int $mois, array $departements = null, array $etabTypes = null, array $etabTypes2 = null): array {
+    $where = "se.id_mois = :id_mois";
+    $args = ['id_mois' => $mois];
 
-/**
- * Génère une clause in pour une requête préparé
- *
- * @param string $field     Le nom du champ sur lequel se fait le in
- * @param array  $arrayElem Le tableau des éléments du in
- * @param string $prefix    Le prefix du paramètre
- *
- * @return array En 0 la clause in sous forme de string paramétré et en 1 les arguments
- */
-function generateInClauseAndArgs(string $field, array $arrayElem, string $prefix = "p"): array {
-    $res = "{$field} IN (";
-    $first = true;
-    $cpt = 0;
-    $args = [];
-
-    foreach($arrayElem as $elem) {
-        if ($first) {
-            $first = false;
-        } else {
-            $res .= ", ";
-        }
-
-        $key = $prefix.$cpt;
-        $res .= ":{$key}";
-        $cpt++;
-        $args[$key] = $elem;
+    if ($departements !== null && count($departements) !== 0) {
+        $res = DB::generateInClauseAndArgs("e.departement", $departements, "dep");
+        $where .= " AND ".$res[0];
+        $args = array_merge($args, $res[1]);
     }
 
-    return [$res.")", $args];
+    if ($etabTypes !== null && count($etabTypes) !== 0) {
+        $res = DB::generateInClauseAndArgs("e.id_type", $etabTypes, "et1");
+        $where .= " AND ".$res[0];
+        $args = array_merge($args, $res[1]);
+    }
+
+    if ($etabTypes2 !== null && count($etabTypes2) !== 0) {
+        $res = DB::generateInClauseAndArgs("e.id_type2", $etabTypes2, "et2");
+        $where .= " AND ".$res[0];
+        $args = array_merge($args, $res[1]);
+    }
+
+    $res = DB::generateInClauseAndArgs("e.siren", $droitsUtilisateur->getTabSiren(), "siren");
+    $where .= " AND ".$res[0];
+    $args = array_merge($args, $res[1]);
+
+    return [$where, $args];
 }
 
 /**

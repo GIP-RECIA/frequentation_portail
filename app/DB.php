@@ -17,6 +17,13 @@ class DB {
     private function __construct() {}
 
     /**
+     * Destructeur
+     */
+    public function __destruct() {
+        self::$PDO = null;
+    }
+
+    /**
      *  Permet d'obtenir l'objet PDO
      *
      *  @return PDO L'objet pdo pour se connecter à la db
@@ -36,9 +43,45 @@ class DB {
     }
 
     /**
-     * Destructeur
+     * Génère une clause in pour une requête préparé
+     *
+     * @param string $field     Le nom du champ sur lequel se fait le in
+     * @param array  $arrayElem Le tableau des éléments du in
+     *
+     * @return string La clause in sous forme de string paramétré
      */
-    public function __destruct() {
-        self::$PDO = null;
+    public static function generateInClause(string $field, array $arrayElem): string {
+        return "{$field} IN (".str_repeat('?,', count($arrayElem) - 1) . "?)";
+    }
+    
+    /**
+     * Génère une clause in pour une requête préparé
+     *
+     * @param string $field     Le nom du champ sur lequel se fait le in
+     * @param array  $arrayElem Le tableau des éléments du in
+     * @param string $prefix    Le prefix du paramètre
+     *
+     * @return array En 0 la clause in sous forme de string paramétré et en 1 les arguments
+     */
+    public static function generateInClauseAndArgs(string $field, array $arrayElem, string $prefix = "p"): array {
+        $res = "{$field} IN (";
+        $first = true;
+        $cpt = 0;
+        $args = [];
+    
+        foreach($arrayElem as $elem) {
+            if ($first) {
+                $first = false;
+            } else {
+                $res .= ", ";
+            }
+    
+            $key = $prefix.$cpt;
+            $res .= ":{$key}";
+            $cpt++;
+            $args[$key] = $elem;
+        }
+    
+        return [$res.")", $args];
     }
 }

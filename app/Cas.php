@@ -89,10 +89,10 @@ class Cas {
             return strtolower(phpCAS::getUser());
         }
 
-        $debug = $this->config->get('debug');
+        $debugUid = $this->config->get('debug', 'uid');
 
-        if ($debug !== null && array_key_exists('uid', $debug)) {
-            return strtolower($debug['uid']);
+        if ($debugUid !== null) {
+            return strtolower($debugUid);
         }
 
         throw new Exception("Impossible de récupérer l'uid de l'utilisateur");
