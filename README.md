@@ -26,12 +26,11 @@ Installer les dépendances :
 composer install --no-dev
 ```
 
-#### Installation de l'import uniquement
-
-Ne conserver que les fichiers suivants :
-* `import.php`
-* `include/config.php`
-* `include/import-functions.php`
+Installer les dépendances web _(inutile pour la partie import)_ :
+```
+npm install -production
+npm run build-prod
+```
 
 ### Installation de la base de données
 
@@ -75,6 +74,10 @@ Le portail s’appuie sur l’utilisation d’un certificat SSL mis en place par
 
 Le portail s’appuie sur une authentification via le protocole CAS.
 
+## ldap
+
+Le portail utilise ldap pour déterminer les droits de l'utilisateur
+
 ## Étapes de paramétrage de l’application
 
 ### Base de données
@@ -86,6 +89,10 @@ L’accès à la base de données est défini dans le fichier `/include/config.p
 La configuration du cas est défini dans le fichier `/include/config.php` dans la section `cas`.
 La configuration cas n'est pas nécessaire pour la partie import toute seule.
 
+### ldap
+
+La configuration du cas est défini dans le fichier `/include/config.php` dans la section `ldap`.
+La configuration cas n'est pas nécessaire pour la partie import toute seule.
 ### Emplacement des fichiers d'import
 
 Il est possible, mais pas obligatoire, de définir l'emplacement des fichiers d'import dans le fichier `/include/config.php` dans la section `importDir`.
@@ -146,3 +153,12 @@ Les utilisateurs ayant le role **National_DIR** dans le champ **ENTPersonProfils
 L'affichage de statistiques se fera donc pour **Tous les mois** et non pour un mois précis et sur la vue **services**.
 
 De plus l'affichage **TOP** sera masqué.
+
+
+### Utilisateur membre du groupe esco:admin:Indicateurs:central
+
+L'utilisateur membre du groupe **esco:admin:Indicateurs:central** verra tous les lycées.
+
+### Utilisateur membre du groupe clg%DEP%:admin:Indicateurs:central
+
+L'utilisateur membre du groupe **clg%DEP%:admin:Indicateurs:central** verra tous les collèges du département %DEP%.
