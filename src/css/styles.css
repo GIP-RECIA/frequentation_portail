@@ -1,8 +1,8 @@
-th, td {
-    font-size: 0.8em;
-    text-align: center;
-}
+@import url('https://fonts.googleapis.com/css2?family=Roboto&family=Roboto+Condensed:wght@700&family=Roboto+Slab:wght@600&display=swap');
 
+@import "~bootstrap/dist/css/bootstrap.css";
+@import "~datatables.net-dt/css/jquery.dataTables.css";
+@import "~select2/dist/css/select2.css";
 
 /*---------------------------------
 
@@ -10,7 +10,10 @@ Charte Graphique ENT
 
 -------------------------------------*/
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto&family=Roboto+Condensed:wght@700&family=Roboto+Slab:wght@600&display=swap');
+th, td {
+    font-size: 0.8em;
+    text-align: center;
+}
 
 body {
     font-family: 'Roboto', sans-serif;
@@ -18,6 +21,10 @@ body {
     /* font-family: 'Roboto Slab', serif; */
     color: #303030;
     font-size: 10px;
+}
+
+body .select2-container .select2-search--inline .select2-search__field {
+    font-size: 14px;
 }
 
 .navbar-dark {

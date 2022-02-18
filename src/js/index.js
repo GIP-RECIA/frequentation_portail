@@ -1,10 +1,12 @@
 import 'jquery';
+import 'popper.js';
 import 'bootstrap';
 import 'datatables.net';
 import "datatables.net-buttons";
 import "datatables.net-buttons/js/buttons.html5.js";
 import * as JSZip from "jszip";
 import 'select2';
+import '../css/styles.css';
 window.JSZip = JSZip;
 
 document.addEventListener('DOMContentLoaded', function () {
