@@ -495,8 +495,8 @@ function renderTwig(string $template, array $data = []): string {
     $config = Config::getInstance();
     $params = [];
 
-    if ($config->get('cacheDir') !== null && $config->get('env') === 'prod') {
-        $params['cache'] = $config->get('cacheDir');
+    if ($config->get('twig', 'cacheDir') !== null && $config->get('env') === 'prod') {
+        $params['cache'] = $config->get('twig', 'cacheDir');
     }
 
     // le dossier ou on trouve les templates
