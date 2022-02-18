@@ -45,7 +45,7 @@ mysql -h HOST -P PORT -D DATABASE -u USER -p < data/frequentation_portail_struct
 
 A la racine du projet, ajouter un dossier cache er lui donner les bon droits :
 ```bash
-mkdir cache
+sudo mkdir cache
 sudo chown www-data:www-data cache
 sudo chmod g+w cache
 ```
