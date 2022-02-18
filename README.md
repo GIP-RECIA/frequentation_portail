@@ -41,6 +41,17 @@ La commande suivante permet d'importer la base de données :
 mysql -h HOST -P PORT -D DATABASE -u USER -p < data/frequentation_portail_structure.sql
 ```
 
+### Installation du cache twig
+
+A la racine du projet, ajouter un dossier cache er lui donner les bon droits :
+```bash
+mkdir cache
+sudo chown www-data:www-data cache
+sudo chmod g+w cache
+```
+
+Puis vérifier que ce dossier correspond bien a celui spécifié dans la conf pour la clé `twig/cacheDir`.
+
 ## Étapes de paramétrage du serveur
 
 ### PHP
@@ -74,7 +85,7 @@ Le portail s’appuie sur l’utilisation d’un certificat SSL mis en place par
 
 Le portail s’appuie sur une authentification via le protocole CAS.
 
-## ldap
+### ldap
 
 Le portail utilise ldap pour déterminer les droits de l'utilisateur
 
