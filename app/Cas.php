@@ -3,6 +3,7 @@
 namespace App;
 
 use Exception;
+use phpCAS;
 use App\Config;
 
 /**
