@@ -174,3 +174,15 @@ L'utilisateur membre du groupe **esco:admin:Indicateurs:central** verra tous les
 ### Utilisateur membre du groupe clg%DEP%:admin:Indicateurs:central
 
 L'utilisateur membre du groupe **clg%DEP%:admin:Indicateurs:central** verra tous les collèges du département %DEP%.
+
+### Utilisateur membre du groupe agri:admin:Indicateurs:central
+
+L'utilisateur membre du groupe **agri:admin:Indicateurs:central** verra tous les lycées et cfa agricole.
+
+### Utilisateur membre du groupe cfa:admin:Indicateurs:central
+
+L'utilisateur membre du groupe **cfa:admin:Indicateurs:central** verra tous les cfa.
+
+### Utilisateur membre du groupe ef2s:admin:Indicateurs:central
+
+L'utilisateur membre du groupe **ef2s:admin:Indicateurs:central** verra tous les ef2s.
