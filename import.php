@@ -18,11 +18,14 @@ function main(array $argv): void {
         $date = isset($options['d']) ? $options['d'] : null;
         $chemin = isset($options['c']) ? $options['c'] : $config->get('importDir');
         $verbose = isset($options['v']);
+        $yesterday = isset($options['y']);
         $folder = date('Y/m');
         $path = '';
         
         if ($date !== null) {
             $folder = $date;
+        } elseif ($yesterday) {
+            $folder = date('Y/m', time() - 24*60*60);
         }
         
         if ($chemin !== null) {

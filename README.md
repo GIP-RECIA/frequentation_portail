@@ -112,9 +112,10 @@ Il est possible, mais pas obligatoire, de définir l'emplacement des fichiers d'
 
 ### Liste des paramètres
 
-* `-d` pour **date**, optionnel au format YYYY/MM
+* `-d` pour **date**, optionnel au format YYYY/MM (prioritaire sur le `-y`)
 * `-c` pour **chemin**, optionnel en format absolu
 * `-v` pour avoir des logs plus verbeux
+* `-y` pour importer à la date d'hier
 Des messages d’erreurs s’afficheront si le dossier n’existe pas.
 
 ### Traitement automatique
