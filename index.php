@@ -5,6 +5,7 @@ require 'include/web-functions.php';
 
 use App\Cas;
 use App\DroitsUtilisateur;
+use App\NoEtabToDisplayException;
 
 const VIEW_SERVICES = "services";
 const VIEW_ETABS = "etabs";
@@ -88,6 +89,8 @@ function main(): void {
         ];
 
         echo renderTwig('index.html.twig', $templateDate);
+    } catch (NoEtabToDisplayException $e) {
+        echo renderTwig('exception.html.twig', ['message' => "Vous n'avez le droit de voir aucun établissement"]);
     } catch (Exception $e) {
         showException($e);
     }

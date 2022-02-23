@@ -5,6 +5,7 @@ namespace App;
 use Exception;
 use App\Config;
 use App\Cas;
+use App\NoEtabToDisplayException;
 
 class DroitsUtilisateur {
     /** @var LDAP\Connection|false */
@@ -168,7 +169,7 @@ class DroitsUtilisateur {
         }
 
         if (count($this->tabSiren) === 0) {
-            throw new Exception("L'utilisateur {$uid} ne peut voir aucun établissement : {$filter}");
+            throw new NoEtabToDisplayException("L'utilisateur {$uid} ne peut voir aucun établissement : {$filter}");
         }
     }
 }
