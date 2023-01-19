@@ -72,6 +72,7 @@ function main(): void {
         }
         
         $templateDate = [
+            'domain' => $_SERVER['HTTP_HOST'],
             'showSimpleData' => $show_simple_data,
             'etabReadOnly' => $etabReadOnly,
             'viewService' => $serviceView,

@@ -5,15 +5,29 @@
         <title>Statistiques</title>
         <script src="./assets/index.js"></script>
         <link rel="stylesheet" href="./assets/styles.css"/>
+        <!-- Ajout pour le extended-uportal-header -->
+        <script type="text/javascript" src="/commun/extended-uportal-header.min.js"></script>
+        <!-- Ajout pour le extended-uportal-footer -->
+        <script type="text/javascript" src="/commun/extended-uportal-footer.min.js"></script>
     </head>
 
     <body>
     <header>
-        <div class="navbar navbar-dark bg-dark shadow-sm">
-            <div class="container-fluid d-block">
-                <a class="navbar-brand" href="./.."><img src="./images/logoNOC.svg" alt="Net O'Centre"></a>
-            </div>
-        </div>
+        <extended-uportal-header messages='[{"locales": ["fr", "fr-FR"], "messages": { "message": {"header": {"login": "Connexion ENT" } }}}]'
+            domain="{{ domain }}"
+            service-name="Statistiques de fréquentation" context-api-url="/portail" sign-out-url="/portail/Logout"
+            default-org-logo-path="/annuaire_images/default_banner_v1.jpg" default-avatar-path="/images/icones/noPictureUser.svg"
+            default-org-icon-path="/images/partners/netocentre-simple.svg" favorite-api-url="/portail/api/layout"
+            layout-api-url="/portail/api/v4-3/dlm/layout.json" organization-api-url="/change-etablissement/rest/v2/structures/structs/"
+            user-info-api-url="/portail/api/v5-1/userinfo?claims=private,name,ESCOSIRENCourant,ESCOSIREN,picture&groups="
+            portlet-api-url="/portail/api/v4-3/dlm/portletRegistry.json?category=All%20categories"
+            session-api-url="/portail/api/session.json"
+            user-info-portlet-url="/portail/api/ExternalURLStats?fname=ESCO-MCE&amp;service=/MCE"
+            template-api-path="/commun/portal_template_api.tpl.json" switch-org-portlet-url="/portail/p/etablissement-swapper"
+            favorites-portlet-card-size="small" grid-portlet-card-size="auto" hide-action-mode="never"
+            show-favorites-in-slider="true" return-home-title="Aller à l\'accueil" return-home-target="_self"
+            icon-type="nine-square" sign-in-url="/portail/Login" >
+        </extended-uportal-header>
     </header>
     {% block body %}
     {% endblock %}
@@ -37,5 +51,11 @@
 
         </div>
     </div>
+    <footer>
+        <extended-uportal-footer domain="{{ domain }}"
+            template-api-path="/commun/portal_template_api.tpl.json"
+            links='[{"title":"Accessibilité : partiellement conforme"},{"title":"CGU","href":"/files/textes/droits_usage.html"},{"title":"Apereo.org","href":"https://www.apereo.org/"},{"title":"ESUP-Portail","href":"https://www.esup-portail.org/"}]' >
+        </extended-uportal-header>
+    </footer>
     </body>
 </html>

@@ -240,3 +240,14 @@ table.table-striped tbody tr:hover {
     flex-basis: 100%;
     height: 0;
 }
+
+body{
+    padding-top:38px;
+}
+
+extended-uportal-header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1001;
+}
