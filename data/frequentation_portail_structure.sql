@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `types` (
 
 CREATE TABLE IF NOT EXISTS `types2` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nom` varchar(64) NOT NULL,
+  `nom` varchar(127) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
