@@ -1,144 +1,146 @@
 {% extends 'base.html.twig' %}
 
 {% block body %}
-    <section id="chapeau">
-        <div class="container-fluid">
-            <div id="filters">
-                <h1>Statistiques de fréquentation</h1>
-                <h2>ENT Net O'Centre</h2>
-                {% if not showSimpleData %}
-                    <form id="filters" action="" method="post" class="form-inline">
-                        <div class="form-group mr-2 mb-3">
-                            <label>Voir les résultats pour :</label>
-                        </div>
-                        <div class="break"></div>
-                        <div class="form-group mr-2 mb-3">
-                            <label for="mois" class="sr-only">Période</label>
-                            <select id="mois" name="mois" class="form-control" data-pos="1">
-                                {% for forMois in listMois %}
-                                    <option {% if forMois.id == mois %}selected {% endif %}value="{{ forMois.id }}">{{ forMois.mois }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        {% if not etabReadOnly %}
-                        <div class="form-group mr-2 mb-3">
-                            <label for="departement" class="sr-only">département</label>
-                            <select id="departement" name="departement[]" class="form-control js-select2-mutliple departement"
-                                    multiple="multiple" style="width:200px;" data-placeholder="Tous les départements" data-pos="2">
-                                {% for forDepartement in listDepartements %}
-                                    <option {% if forDepartement in departement or loop.length == 1 %}selected {% endif %}value="{{ forDepartement }}">{{ forDepartement }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group mr-2 mb-3">
-                            <label for="etabType" class="sr-only">catégorie</label>
-                            <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple type"
-                                    multiple="multiple" style="width:150px;" data-placeholder="Tous les types" data-pos="3">
-                                {% for forTypeEtab in listTypesEtab %}
-                                    <option {% if forTypeEtab.id in typesEtab or loop.length == 1 %}selected {% endif %}value="{{ forTypeEtab.id }}">{{ forTypeEtab.nom }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group mr-2 mb-3">
-                            <label for="etabType2" class="sr-only">catégorie avancée</label>
-                            <select id="etabType2" name="etabType2[]" class="form-control js-select2-mutliple type2"
-                                    multiple="multiple" style="width:450px;" data-placeholder="Tous les types avancés" data-pos="4">
-                                {% for forType2Etab in listTypes2Etab %}
-                                    <option {% if forType2Etab.id in types2Etab or loop.length == 1 %}selected {% endif %}value="{{ forType2Etab.id }}">{{ forType2Etab.nom }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        {% endif %}
-                        <div class="form-group mr-2 mb-3">
-                            <label for="etab" class="sr-only">établissement</label>
-                            <select id="etab" name="etab" class="form-control" data-disabled="{{ etabReadOnly ? 'true' : 'false' }}">
-                                {% if not etabReadOnly %}<option value="-1">Tous les établissements</option>{% endif %}
-                                {% for forEtab in listEtabs %}
-                                    {% if (not etabReadOnly) or forEtab.id == etab %}
-                                    <option {% if forEtab.id == etab or loop.length == 1 %}selected {% endif %}value="{{ forEtab.id }}">{{ forEtab.nom }}</option>
-                                    {% endif %}
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="break"></div>
-                        <button id="filterBtn" class="btn btn-primary mb-3">Filtrer</button>
-                        <button id="reset" class="btn btn-default mb-3">Ré-initialiser les filtres</button>
-                        <input id="resultType" type="hidden" name="resultType" value="{% if viewService %}{{ constant('VIEW_SERVICES') }}{% else %}{{ constant('VIEW_ETABS') }}{% endif %}"/>
-                    </form>
-                {% endif %}
-            </div>
-            <div>
-    </section>
-    <section id="statistiques">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-6">
+    <main>
+        <section id="chapeau">
+            <div class="container-fluid">
+                <div id="filters">
+                    <h1>Statistiques de fréquentation</h1>
+                    <h2>ENT Net O'Centre</h2>
                     {% if not showSimpleData %}
-                        <div class="custom-control custom-radio custom-control-inline">
-                            <input type="radio" id="vueservices" name="vue" class="custom-control-input"
-                                    value="services" {% if viewService %}checked{% endif %} >
-                            <label class="custom-control-label" for="vueservices">Vue Services</label>
-                        </div>
-                        <div class="custom-control custom-radio custom-control-inline">
-                            <input type="radio" id="vuelycees" name="vue" class="custom-control-input"
-                                    value="etabs" {% if not viewService %}checked{% endif %} >
-                            <label class="custom-control-label" for="vuelycees">Vue Etablissements</label>
-                        </div>
+                        <form id="filters" action="" method="post" class="form-inline">
+                            <div class="form-group mr-2 mb-3">
+                                <label>Voir les résultats pour :</label>
+                            </div>
+                            <div class="break"></div>
+                            <div class="form-group mr-2 mb-3">
+                                <label for="mois" class="sr-only">Période</label>
+                                <select id="mois" name="mois" class="form-control" data-pos="1">
+                                    {% for forMois in listMois %}
+                                        <option {% if forMois.id == mois %}selected {% endif %}value="{{ forMois.id }}">{{ forMois.mois }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% if not etabReadOnly %}
+                            <div class="form-group mr-2 mb-3">
+                                <label for="departement" class="sr-only">département</label>
+                                <select id="departement" name="departement[]" class="form-control js-select2-mutliple departement"
+                                        multiple="multiple" style="width:200px;" data-placeholder="Tous les départements" data-pos="2">
+                                    {% for forDepartement in listDepartements %}
+                                        <option {% if forDepartement in departement or loop.length == 1 %}selected {% endif %}value="{{ forDepartement }}">{{ forDepartement }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group mr-2 mb-3">
+                                <label for="etabType" class="sr-only">catégorie</label>
+                                <select id="etabType" name="etabType[]" class="form-control js-select2-mutliple type"
+                                        multiple="multiple" style="width:150px;" data-placeholder="Tous les types" data-pos="3">
+                                    {% for forTypeEtab in listTypesEtab %}
+                                        <option {% if forTypeEtab.id in typesEtab or loop.length == 1 %}selected {% endif %}value="{{ forTypeEtab.id }}">{{ forTypeEtab.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group mr-2 mb-3">
+                                <label for="etabType2" class="sr-only">catégorie avancée</label>
+                                <select id="etabType2" name="etabType2[]" class="form-control js-select2-mutliple type2"
+                                        multiple="multiple" style="width:450px;" data-placeholder="Tous les types avancés" data-pos="4">
+                                    {% for forType2Etab in listTypes2Etab %}
+                                        <option {% if forType2Etab.id in types2Etab or loop.length == 1 %}selected {% endif %}value="{{ forType2Etab.id }}">{{ forType2Etab.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% endif %}
+                            <div class="form-group mr-2 mb-3">
+                                <label for="etab" class="sr-only">établissement</label>
+                                <select id="etab" name="etab" class="form-control" data-disabled="{{ etabReadOnly ? 'true' : 'false' }}">
+                                    {% if not etabReadOnly %}<option value="-1">Tous les établissements</option>{% endif %}
+                                    {% for forEtab in listEtabs %}
+                                        {% if (not etabReadOnly) or forEtab.id == etab %}
+                                        <option {% if forEtab.id == etab or loop.length == 1 %}selected {% endif %}value="{{ forEtab.id }}">{{ forEtab.nom }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="break"></div>
+                            <button id="filterBtn" class="btn btn-primary mb-3">Filtrer</button>
+                            <button id="reset" class="btn btn-default mb-3">Ré-initialiser les filtres</button>
+                            <input id="resultType" type="hidden" name="resultType" value="{% if viewService %}{{ constant('VIEW_SERVICES') }}{% else %}{{ constant('VIEW_ETABS') }}{% endif %}"/>
+                        </form>
                     {% endif %}
                 </div>
-                <div class="col-6">
-                    <div class="custom-control custom-switch text-right mb-3">
-                        <input type="checkbox" class="custom-control-input switch-auto" id="customSwitch1" name="switch1" data-val1="population" data-val2="ratio">
-                        <label class="custom-control-label" for="customSwitch1">Voir le ratio des visites par rapport aux
-                            utilisateurs potentiels</label>
+                <div>
+        </section>
+        <section id="statistiques">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-6">
+                        {% if not showSimpleData %}
+                            <div class="custom-control custom-radio custom-control-inline">
+                                <input type="radio" id="vueservices" name="vue" class="custom-control-input"
+                                        value="services" {% if viewService %}checked{% endif %} >
+                                <label class="custom-control-label" for="vueservices">Vue Services</label>
+                            </div>
+                            <div class="custom-control custom-radio custom-control-inline">
+                                <input type="radio" id="vuelycees" name="vue" class="custom-control-input"
+                                        value="etabs" {% if not viewService %}checked{% endif %} >
+                                <label class="custom-control-label" for="vuelycees">Vue Etablissements</label>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-6">
+                        <div class="custom-control custom-switch text-right mb-3">
+                            <input type="checkbox" class="custom-control-input switch-auto" id="customSwitch1" name="switch1" data-val1="population" data-val2="ratio">
+                            <label class="custom-control-label" for="customSwitch1">Voir le ratio des visites par rapport aux
+                                utilisateurs potentiels</label>
+                        </div>
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-2">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchParent" name="parent"
+                                checked data-val1="no-parent" data-val2="parent">
+                            <label class="custom-control-label" for="customSwitchParent">Voir les parents</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchEleve" name="eleve"
+                                checked data-val1="no-eleve" data-val2="eleve">
+                            <label class="custom-control-label" for="customSwitchEleve">Voir les élèves</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchEnseignant" name="enseignant"
+                                checked data-val1="no-enseignant" data-val2="enseignant">
+                            <label class="custom-control-label" for="customSwitchEnseignant">Voir les enseignants</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchPersNonEns" name="pers-non-ens"
+                                checked data-val1="no-pers-non-ens" data-val2="pers-non-ens">
+                            <label class="custom-control-label" for="customSwitchPersNonEns">Voir le personnel d'établissement non enseignant</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchPersCol" name="pers-col"
+                                checked data-val1="no-pers-col" data-val2="pers-col">
+                            <label class="custom-control-label" for="customSwitchPersCol">Voir le personnel de collectivité</label>
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchTuteur" name="tuteur"
+                                data-val1="no-tuteur" data-val2="tuteur">
+                            <label class="custom-control-label" for="customSwitchTuteur">Voir les tuteurs de stages</label>
+                        </div>
+                    </div>
+                </div>
+                {% include 'array.html.twig' %}
             </div>
-            <div class="row">
-                <div class="col-2">
-                    <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchParent" name="parent"
-                            checked data-val1="no-parent" data-val2="parent">
-                        <label class="custom-control-label" for="customSwitchParent">Voir les parents</label>
-                    </div>
-                </div>
-                <div class="col-2">
-                    <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchEleve" name="eleve"
-                            checked data-val1="no-eleve" data-val2="eleve">
-                        <label class="custom-control-label" for="customSwitchEleve">Voir les élèves</label>
-                    </div>
-                </div>
-                <div class="col-2">
-                    <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchEnseignant" name="enseignant"
-                            checked data-val1="no-enseignant" data-val2="enseignant">
-                        <label class="custom-control-label" for="customSwitchEnseignant">Voir les enseignants</label>
-                    </div>
-                </div>
-                <div class="col-2">
-                    <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchPersNonEns" name="pers-non-ens"
-                            checked data-val1="no-pers-non-ens" data-val2="pers-non-ens">
-                        <label class="custom-control-label" for="customSwitchPersNonEns">Voir le personnel d'établissement non enseignant</label>
-                    </div>
-                </div>
-                <div class="col-2">
-                    <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchPersCol" name="pers-col"
-                            checked data-val1="no-pers-col" data-val2="pers-col">
-                        <label class="custom-control-label" for="customSwitchPersCol">Voir le personnel de collectivité</label>
-                    </div>
-                </div>
-                <div class="col-2">
-                    <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input switch-auto sel-col" id="customSwitchTuteur" name="tuteur"
-                            data-val1="no-tuteur" data-val2="tuteur">
-                        <label class="custom-control-label" for="customSwitchTuteur">Voir les tuteurs de stages</label>
-                    </div>
-                </div>
-            </div>
-            {% include 'array.html.twig' %}
-        </div>
-    </section>
+        </section>
+    </main>
 {% endblock %}

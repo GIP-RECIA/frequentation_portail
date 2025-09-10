@@ -6,14 +6,14 @@
         <script src="./assets/index.js"></script>
         <link rel="stylesheet" href="./assets/styles.css"/>
         <!-- Ajout pour le extended-uportal-header -->
-        <script type="text/javascript" src="/commun/extended-uportal-header.min.js"></script>
+        <script type="text/javascript" src="/resource-server/webjars/gip-recia__ui-webcomponents/dist/r-header.js"></script>
         <!-- Ajout pour le extended-uportal-footer -->
-        <script type="text/javascript" src="/commun/extended-uportal-footer.min.js"></script>
+        <script type="text/javascript" src="/resource-server/webjars/gip-recia__ui-webcomponents/dist/r-footer.js"></script>
     </head>
 
     <body>
     <header>
-        <extended-uportal-header messages='[{"locales": ["fr", "fr-FR"], "messages": { "message": {"header": {"login": "Connexion ENT" } }}}]'
+        <extended-uportal-header
             domain="{{ domain }}" fname="Statistiques"
             template-api-path="/commun/portal_template_api.tpl.json" >
         </extended-uportal-header>
@@ -42,8 +42,7 @@
     </div>
     <footer>
         <extended-uportal-footer domain="{{ domain }}"
-            template-api-path="/commun/portal_template_api.tpl.json"
-            links='[{"title":"Accessibilité : partiellement conforme"},{"title":"CGU","href":"/files/textes/droits_usage.html"},{"title":"Apereo.org","href":"https://www.apereo.org/"},{"title":"ESUP-Portail","href":"https://www.esup-portail.org/"}]' >
+            template-api-path="/commun/portal_template_api.tpl.json" >
         </extended-uportal-footer>
     </footer>
     </body>
