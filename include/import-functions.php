@@ -143,7 +143,7 @@ function importDataEtabs(string $folder, bool $verbose, ?string $env): void {
     // Si il y'a des etabs a insérer, on récupère leurs uai pour les insérer
     if (sizeof($etabsToInsert) > 0) {
         if ($env !== 'dev') {
-            $url = "https://ent.recia.fr/change-etablissement/rest/v2/structures/structs/?ids=".implode(',', $etabsToInsert);
+            $url = "https://ent.recia.fr/paramuseretab/rest/v2/structures/structs/?ids=".implode(',', $etabsToInsert);
             $json = file_get_contents($url);
             $json_data = json_decode($json, true);
         }
