@@ -91,7 +91,12 @@ function main(): void {
 
         echo renderTwig('index.html.twig', $templateDate);
     } catch (NoEtabToDisplayException $e) {
-        echo renderTwig('exception.html.twig', ['message' => "Vous n'avez le droit de voir aucun établissement"]);
+        $templateDate = [
+            'domain' => $_SERVER['HTTP_HOST'],
+            'message' => "Vous n'avez le droit de voir aucun établissement",
+        ];
+
+        echo renderTwig('exception.html.twig', $templateDate);
     } catch (Exception $e) {
         showException($e);
     }
